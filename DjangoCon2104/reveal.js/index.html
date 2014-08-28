@@ -60,7 +60,7 @@
                         <p>@loftylabs</p>
                     </section>
                     <section data-background="#222222">
-                        <div style="background: url(assets/heapsort_dark.png) center no-repeat; height: 300px;"></div>
+                        <div style="background: url(assets/heapsort_darkbg.png) center no-repeat; background-size: 90%; height: 300px;"></div>
                         <p>heapsortjobs.com</p>
                         <p>@heapsortapp</p>
                     </section>
@@ -176,35 +176,451 @@ $ coverage report
                     <h1>Don't.  Touch.  Anything.</h2>
                     <h2 class="fragment" style="color: #FF3333;"><em>Everything</em> is Hot Lava</h2>
                 </section>
+                
                 <section>
-                    <h1>Test Coverage</h1>
-                    <p>We’ll discuss test coverage—what you need, what you don’t, and a plan to get there quickly.</p>
+                    <section>
+                        <h1>You're Gonna Do Some Prep-work</h1>
+                    </section>
+                    <section>
+                        <h2>Do this first</h2>
+                        <pre><code>
+$ git checkout -b original_project master
+                        </code></pre>
+                        <p>Now, when you want to see the way the code originally worked:</p>
+                        <pre><code>
+$ git diff original_project master -- myapp/models.py                        
+                        </code></pre>
+                        <p>And once everything is all cleaned up...  Your badge of honor:</p>
+                        <pre><code>
+$ git diff original_project..master --stat
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Fire it up</h2>
+                        <p>Create a virtual environment.  But don't get attached to it.</p>
+                        <p>The goal is to get the project running in its last known working configuration.</p>
+                        <p>If the project shipped with a dependency list, use it. If not, you'll have to wing it.  Don't remove any dependencies--only install ones that are missing.</p>  
+                        <p>If the project shipped with tests, try to get them running.  <em>Keep in mind that if the project is in disarray, there's a good chance that the test suite was not passing in its last known working state.</em></p>
+                        <p>Be sure to freeze your dependencies into requirements.txt if you added new ones.<p>
+                    </section>
                 </section>
                 <section>
-                    <h1>Preparing The Project</h1>
-                    <p>There’s some housekeeping to get done before we start getting our hands dirty.  We’ll make sure the project is ready for the big refactoring tasks ahead.</p>
+                    <section>
+                        <h1>You're Gonna Need Test<br>Coverage</h1>
+                    </section>
+                    <section>
+                        <h2>We're not going to go too crazy here</h2>
+                        <ul>
+                            <li>Integration test coverage for all Django views.</li>
+                            <li>Integration and or unit test coverage for business critical processes.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Integration Tests</h2>
+                        <p>For our purposes, an integration test end-to-end test of the Python/Django code.</p>
+                        <p>Our goal is coverage, first and foremost.  We want to catch landmines and see that refactors in one module do not unexpectedly affect another.</p>
+                    </section>
+                    <section>
+                        <h2>Integration Tests: An Example</h2>
+                        <pre><code>
+class HeapsortIntegrationTests(HeapsortIntegrationTestCase):
+
+    def test_home_anon(self):
+        """
+        Tests the homepage view works for anonymous users
+        """
+
+        # Unauthenticated
+        self.client.logout()
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed('home.html')
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Unit Tests</h2>
+                        <p>Our goal is not to achieve full unit test coverage.  Unit tests are tightly coupled to implementation and will be largely negated by refactoring.</p>
+                    </section>
+                    <section>
+                        <h2>Unit Tests: An Example</h2>
+                        <pre><code>
+import unittest
+import mock
+import datetime
+
+from job.models import Job
+
+class JobUnitTests(unittest.TestCase):
+
+    # ...
+    
+    def test_jobs_expire_after_30_days(self):
+        """
+        A job should no longer be returned by the manager when it expires
+        """
+        
+        now = datetime.datetime.now()
+        the_future = datetime.timedelta(days=30)
+
+        datetime_mock = mock.Mock()
+
+        with mock.patch.multiple('jobs.models', datetime=datetime_mock):
+
+            datetime_mock.datetime.now.return_value = now
+            
+            # Create a job.  The job should be returned by the manager
+            test_job = self._create_job("My Test Job")
+            self.assertTrue(test_job in Job.active.all())
+            
+            # Fast-forard to... THE FUTURE
+            datetime_mock.datetime.now.return_value = now + the_future
+            self.assertFalse(test_job in Job.active.all())
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Test Coverage: How much is enough?</h2>
+                        <ul>
+                            <li>Integration test coverage for all Django views and user paths, management commands, 3rd party APIs.</li>
+                            <li>Unit test coverage for business critical processes and non view-logic.
+                                <ul>
+                                    <li>Billing processes</li>
+                                    <li>Transactional communication</li>
+                                    <li>Asynchronous tasks</li>
+                                </ul>
+                            </li>
+                            <li>Coverage.py > 90% should be easy. > 95% is ideal.  No individual files left uncovered.</li>
+                        </ul>
+                    </section>
                 </section>
                 <section>
-                    <h1>Dependency Round-up</h1>
-                    <pre><code>
-$ git diff --stat original_initial_product development -- requirements.txt
- requirements.txt | 135 +------------------------------------------------------------------
- 1 file changed, 2 insertions(+), 133 deletions(-)
-                    
-                    </code></pre>
+                    <h1>It's Time to Start Wrangling</h1>
+                    <h2>There's No Telling What You'll Find</h2>
                 </section>
                 <section>
-                    <h1>Slaying Monoliths</h1>
-                    <p>Now its time to start dissecting the codebase itself.  We’ll cover the most common problems I’ve found in the wild and discuss tips for correcting them as painlessly as possible.  Topics include import woes, migrating models across apps, “signals everywhere!”, and more.</p>
+                    <section>
+                        <h2>The Patchwork Quilt of Dependencies Project</h2>
+                        <pre><code>
+    $ git diff --stat original_initial_product development -- requirements.txt
+     requirements.txt | 135 +------------------------------------------------------------------
+     1 file changed, 2 insertions(+), 133 deletions(-)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>All Dependencies Introduce Complexities</h2>
+                        <p>Whether or not to use a 3rd party module is a matter of determining if the ends justify the means</p>
+                        <ul>
+                            <li>Each dependency is a potential obstacle to upgrades.</li>
+                            <li>Low-level Django extensions can conflict and make debugging a nightmare.</li>
+                            <li>3rd party modules installed from VCS make no stability or availability guarantees.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Trim the Fat</h2>
+                        <p>Remember that virtual environment you created?</p>
+                        <p>Good.  Now throw that shit away.</p>
+                        <p>Install the absolute bare minimum of requirements you know you need. 
+                        (Django, South, database drivers, APIs that drive core functionality)</p>
+                    </section>
+                    <section>
+                        <h2>Audit each other requirement one-by-one</h2>
+                        <p>Research each requirement and know exactly what it is, how it works, and why it is used.  They will fall into one of three categories.</p>
+                        <ol>
+                            <li>Totally unnecessary, or even unused.<ul>
+                                <li>Remove these now.</li>
+                            </ul></li>
+                            <li>Potentially unnecessary, but requires refactoring to remove.<ul>
+                                <li>Make a judgement call.  Remove these if the effort is low, or note them as part of larger refactoring tasks.</li>
+                            </ul></li>
+                            <li>Necessary functionality for the project.<ul>
+                                <li>Leave these in place</li>
+                            </ul></li>
+                        </ol>
+                    </section>
+                    <section>
+                        <h2>Test and Upgrade</h2>
+                        <p>Run the tests!  If you missed something, go back to the previous step.</p>
+                        <p>Once your tests are passing, this is the best time to upgrade packages.</p>
+                        <p>Upgrade.  Test.  Repeat</p>
+                    </section>
                 </section>
                 <section>
-                    <h1>Documentation Tips</h1>
-                    <p>We’ll discuss processes for documenting the codebase as we go both to help in our own refactoring, and for new developers/project owners in the future.</p>
+                    <section>
+                        <h2>The Monolithic App of Death</h2>
+                        <p>One app to rule them all.</p>
+                    </section>
+                    <section>
+                        <h2>The Monolithic App of Death</h2>
+                        <p>Monoliths are an organizational nightmare.</p>
+                        <ul>
+                            <li>You cannot succinctly evaluate the functionality of any one component.</li>
+                            <li>Nothing is portable.</li>
+                            <li>Usually rife with <pre><code>from my_app import *</code></pre></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Refactoring Monoliths</h2>
+                        <ul>
+                            <li>Create a sane app structure.<li>
+                            <li>Clean up imports and let PyLint do its thing.<ul>
+                                <li>With `import *` out of the picture, you can easily find all imports of a symbol.</li>
+                            </ul></li>
+                            <li>Migrate models to their new homes.<ul>
+                                <li>Everything else will follow.</li>
+                            </ul></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Migrating Models Across Apps with South</h2>
+                        <p>If the project is pre-production, you can get away with automatic schema migrations.  Otherwise, this is a multi-step process.</p>
+                        <ul>
+                            <li><em>Copy</em> the model the new app, create a schema migration.</li>
+                            <li><em>Delete</em> the old model, create a <em>separate</em> schema migration.</li>
+                            <li><em>Modify</em> your migration for creating the table to perform a <em>rename</em> operation.<ul>
+                                <li><pre><code>
+def forwards(self, orm):
+    #db.delete_table('oldapp_mymodel', 'newapp_mymodel') 
+    db.rename_table('oldapp_mymodel', 'newapp_mymodel') 
+
+def backwards(self, orm):
+    # db.create_table(u'oldapp_mymodel', (
+    #     ('description', self.gf('django.db.models.fields.TextField')()),
+    #     (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+    # ))
+    
+    db.rename_table('newapp_mymodel', 'oldapp_mymodel')
+    
+                                </code></pre></li>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Migrating Models Across Apps with South (continued)</h2>
+                        <ul>
+                            <li><em>Modify</em> the migration for deleting the old model to <em>depend on</em> your rename migration.
+                                <pre><code>
+class Migration(SchemaMigration):
+    depends_on = (('newapp', '0001_initial'),)
+    
+    def forward(self):
+        pass
+        
+    def backward(self):
+        pass
+                                </code></pre>
+                            </li>
+                            <li>Take extra care with ContentTypes and relationships.</li>
+                        </ul>
+                        <br><br>
+                        <p>A great discussion of these techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
+                    </section>
+                    <section>
+                        <h2>Migrating Models Across Apps with Django Migrations</h2>
+                        <p>Using Django 1.7's migrations is a little more tricky because migrations.RenameModel only takes a model name, and not the app label for the table.</p>
+                        <p>Your best bet is to simply create the new models and write a separate data migration to copy old data to the new tables before deleting the original models.</p>
+                    </section>
                 </section>
                 <section>
-                    <h1>Re-writes and Optimization</h1>
-                    <p>With our monoliths laid to rest and a new, documented structure in place it’s time to review what we’ve found and refactor any major components.</p>
-				</section>    
+                    <section>
+                        <h2>The "Every Model is an App" Project</h2>
+                        <p>"I like my INSTALLED_APPS to be a list of database tables."</p>
+                    </section>
+                    <section>
+                        <h2>The "Every Model is an App" Project</h2>
+                        <p>This type of structure is another organizational nightmare, for similar reasons to a monolith but due to an opposite cause.</p>
+                        <ul>
+                            <li>You cannot succinctly evaluate the functionality of any one component.</li>
+                            <li>Nothing is portable.</li>
+                            <li>You'll get very acquainted with:<pre><code>
+Traceback (most recent call last):
+  ...
+  File "/app1/foo.py", line 1, in &lt;module&gt;
+    from app2 import bar
+  File "/app2/bar.py", line 1, in &lt;module&gt;
+    from app1 import foo
+ImportError: cannot import name foo   
+                            </pre></code></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>The "Every Model is an App" Project</h2>
+                        <p>Follow the same steps as a monolith.  The challenges are the same; creating an organized structure and migrating models across apps into their new home, and everything else follows.</p>
+                        <p>This should be less work than a monolith, as one of your apps will become the 'host' for others.</p>
+                        
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Receivers Everywhere!</h2>
+                        <p>Decoupling every single model since 2003.</p>
+                    </section>
+                    <section>
+                        <h2>Signals/Receivers Are Useful</h2>
+                        <ul>
+                            <li>Signals allow for a decoupling of models that need side effects.</li>
+                            <li>They are especially useful for triggering side effects in 3rd party code.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>... But Not Always</h2>
+                        <ul>
+                            <li>Signals can hide important functionality from developers.</li>
+                            <li>Signals are often unnecessary abstraction between two models in the same application.</li>
+                            <li>Signal receivers can implement over-zealous business logic.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Getting Rid of Superfluous Signal Receivers</h2>
+                        <p>Be on the lookout for:</p>
+                        <ul>
+                            <li>Signal receivers that interact between two database related models.</li>
+                            <li>Signal receivers in which the instance simply operates on itself.</li>
+                            <li>Signal receivers that implement transactional/business logic.</li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The "How Did I Live Without Context Processors/Middleware?" Project</h2>
+                        <p>Taking DRY to the Max</p>
+                    </section>
+                    <section>
+                        <h3>... (reminds me of when I discovered list comprehensions in Python)</h3>
+                        <pre><code>
+def publish_all():
+    # NOT SURE WHY IM DOING THIS
+    # BUT IT IS COOL AS HELL!
+    [p.publish() for p in Post.objects.all()]                                    
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Context Processors</h2>
+                        <p>Context Processors are widely abused and can quickly impair performance.  You should evaluate each context processor in the project and see if:</p>
+                    </section>
+                    <section>
+                        <ul>
+                            <li class="unstyled">1. The context processor is better suited as a templatetag.
+
+                                <pre><code>
+# in myapp.context_processors.py                                
+
+from myapp.utils import products_by_category
+def products(request):
+    return {'products_by_category': products_by_category()}
+                                </code></pre>
+                                <pre><code>
+# in myapp.templatetags           
+
+from django import template
+from myapp.utils import products_by_category
+
+register = template.Library()
+
+@register.assignment_tag(takes_context=True)
+def get_products_by_category(context):
+    return products_by_category()
+                                </code></pre>
+                            </li>
+                        </ul>
+                        <p class="green">Assignment Tags are effective here.</p>
+                    </section>
+                    <section>
+                        <ul>
+                            <li class="unstyled">2. The context processor logic should be refactored into relevant views.
+                                <pre><code>
+# in myapp.context_processors.py                                
+
+from myapp.utils import products_by_category
+def products(request):
+    return {'products_by_category': products_by_category()}
+                                </code></pre>
+                                <pre><code>
+# in myapp.views
+
+from myapp.utils import products_by_category
+
+class MyView(DetailView):
+
+    def get_context_data(self, **kwargs):
+        context = super(MyView, self).get_context_data(kwargs)
+        context.update({'products_by_category': products_by_category()})
+        
+        return context
+                                </code></pre>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Middleware</h2>
+                        <p>Not as widely abused as Context Processors, but potentially have larger performance implications.</p>
+                        <p class="fragment red">Do I need this logic to execute on <em>every single request and/or response?</em></p>
+                        <p class="fragment">If not, you should engineer a way around.</em></p>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The Undocumented Black Box Full of Black Boxes</h2>
+                        <p># Who put all these hashtags in my code?</p>
+                    </section>
+                    <section>
+                        <p>The only thing worse than code with no comments...</p>
+                        <pre><code>
+def get_classification(self):
+    if self.classification and len(self.classification) == 2:
+        level = CLASSIFICATIONS.get(self.classification[0], '')
+        class_level = self.classification[1]
+        if class_level == 'U':
+            class_level = ''
+        else:
+            class_level = 'class %s '%class_level
+        string = '%s%s'%(class_level, level)
+        return dict({'level':level, 'class': class_level, 'string':string,})
+    else:
+        return None
+                        </code></pre>
+                    </section>
+                    <section> 
+                        <p>... is code with just enough comments to piss you off</p>
+                        <pre><code>
+def get_classification(self):
+    if self.classification and len(self.classification) == 2:
+        level = CLASSIFICATIONS.get(self.classification[0], '')
+        class_level = self.classification[1]
+        if class_level == 'U':
+            class_level = ''
+        else:
+            class_level = 'class %s '%class_level
+        string = '%s%s'%(class_level, level)
+        # returns dict
+        return dict({'level':level, 'class': class_level, 'string':string,})
+    else:
+        return None
+                        </code></pre>
+                </section>
+                <section>
+                    <h2>There's No Easy Way Out of Undocumented Code</h2>
+                    <p>You could try and brute force your way through it, but that's impractical.</p>
+                </section>
+                <section>
+                    <h2>Document as You Go</h2>
+                    <p>Make it policy:  If you edit the code, you document the code.  If you have to dissect code to understand it, comment what you find.</p>
+                </section>
+                <section>
+                    <h2>Document as You Go</h2>
+                    <ul>
+                        <li>
+                            Every module, function, class, and method get a docstring.  No exceptions!
+                            <ul>
+                                <li>These are the workhorses of your documentation effort.</li>
+                            </ul>
+                        </li>
+                        <li>Break apart long, multi-step logical branches with comments.</li>
+                        <li>If a statement is difficult read or has some sort of ambiguity, leave a comment!
+                            <pre><code>
+                            </code></pre>
+                        </li>
+                    </ul>
+                </section>
 			</div>
 
 		</div>

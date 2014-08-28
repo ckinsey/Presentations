@@ -134,3 +134,16 @@ body {
  *********************************************/
 .reveal .slide-number {
   color: #34b6e6; }
+  
+  
+.reveal .red {
+    color: #ff2c2d
+}
+.reveal .green {
+    color: #17ff2e;
+}
+.reveal .blue{
+    color: #1b91ff;
+}  
+ 
+li.unstyled { list-style: none; }
