@@ -50,19 +50,20 @@
 				<section>
 				    <section>
                         <h2>Casey Kinsey</h2>
-                        <p>@cordiskinsey</p>
-                        <p>github.com/ckinsey</p>
+                        <p><a href="https://twitter.com/cordiskinsey/" target=_blank>@cordiskinsey</a></p>
+                        <p><a href="https://github.com/ckinsey" target=_blank>github.com/ckinsey</a></p>
+                        <p><a href="http://linkedin.com/in/caseykinsey" target=_blank>linkedin.com/in/caseykinsey</a></p>
+                        <p><a href="http://heapsortjobs.com/casey" target=_blank>heapsortjobs.com/casey</a></p>
                     </section>
                     <section data-background="#34b6e6">
                         <div style="background: url(assets/lofty_logo_dark.png) center no-repeat; height: 300px;"></div>
-                        <p>hirelofty.com</p>
-                        <p>github.com/loftylabs</p>
-                        <p>@loftylabs</p>
+                        <p><a href="http://hirelofty.com" target=_blank style="color: #FFFFFF;">hirelofty.com</a></p>
+                        <p><a href="http://github.com/loftylabs" target=_blank style="color: #FFFFFF;">http://github.com/loftylabs</p>
                     </section>
                     <section data-background="#222222">
                         <div style="background: url(assets/heapsort_darkbg.png) center no-repeat; background-size: 90%; height: 300px;"></div>
-                        <p>heapsortjobs.com</p>
-                        <p>@heapsortapp</p>
+                        <p><a href="http://www.heapsortjobs.com" target=_blank>heapsortjobs.com</a></p>
+                        <p><a href="http://www.twitter.com/heapsortapp" target=_blank>@heapsortapp</p>
                     </section>
                     
                     <section>
@@ -275,37 +276,28 @@ class HeapsortIntegrationTests(HeapsortIntegrationTestCase):
                     <section>
                         <h2>Unit Tests: An Example</h2>
                         <pre><code>
-import unittest
-import mock
-import datetime
 
-from job.models import Job
+def test_jobs_expire_after_30_days(self):
+	"""
+	A job should no longer be returned by the manager when it expires
+	"""
+	
+	now = datetime.datetime.now()
+	the_future = datetime.timedelta(days=30)
 
-class JobUnitTests(unittest.TestCase):
+	datetime_mock = mock.Mock()
 
-    # ...
-    
-    def test_jobs_expire_after_30_days(self):
-        """
-        A job should no longer be returned by the manager when it expires
-        """
-        
-        now = datetime.datetime.now()
-        the_future = datetime.timedelta(days=30)
+	with mock.patch.multiple('jobs.models', datetime=datetime_mock):
 
-        datetime_mock = mock.Mock()
-
-        with mock.patch.multiple('jobs.models', datetime=datetime_mock):
-
-            datetime_mock.datetime.now.return_value = now
-            
-            # Create a job.  The job should be returned by the manager
-            test_job = self._create_job("My Test Job")
-            self.assertTrue(test_job in Job.active.all())
-            
-            # Fast-forard to... THE FUTURE
-            datetime_mock.datetime.now.return_value = now + the_future
-            self.assertFalse(test_job in Job.active.all())
+		datetime_mock.datetime.now.return_value = now
+		
+		# Create a job.  The job should be returned by the manager
+		test_job = self._create_job("My Test Job")
+		self.assertTrue(test_job in Job.active.all())
+		
+		# Fast-forard to... THE FUTURE
+		datetime_mock.datetime.now.return_value = now + the_future
+		self.assertFalse(test_job in Job.active.all())
                         </code></pre>
                     </section>
                     <section>
@@ -319,7 +311,7 @@ class JobUnitTests(unittest.TestCase):
                                     <li>Asynchronous tasks</li>
                                 </ul>
                             </li>
-                            <li class="fragment">Coverage > 90% should be easy. > 95% is ideal.  No individual files left uncovered.</li>
+                            <li class="fragment">Coverage > 95% is ideal.  No individual files left uncovered.</li>
                         </ul>
                     </section>
                 </section>
@@ -390,7 +382,7 @@ class JobUnitTests(unittest.TestCase):
                         <h2>Refactoring Monoliths</h2>
                         <ul>
                             <li class="fragment">Create a sane app structure.</li>
-                            <li class="fragment">Kill off import * and let PyLint do its thing.</li>
+                            <li class="fragment">Kill off 'import *' and let PyLint do its thing.</li>
                             <li class="fragment">Migrate models to their new homes.<ul>
                                 <li>Everything else will follow.</li>
                             </ul></li>
@@ -399,12 +391,12 @@ class JobUnitTests(unittest.TestCase):
                     <section>
                         <h2>Migrating Models Across Apps with South</h2>
                         <p>If the project is pre-production, you can get away with automatic schema migrations.  Otherwise, this is a multi-step process.</p>
-                        <p class="fragment">A great discussion of these techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
+                        <p class="fragment">A great discussion of techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
                     </section>
                     <section>
                         <h2>Migrating Models Across Apps with Django Migrations</h2>
                         <p class="fragment">Using Django 1.7's migrations is a little more tricky because migrations.RenameModel only takes a model name, and not the app label for the table.</p>
-                        <p class="fragment">Your best bet is to simply create the new models and write a separate data migration to copy old data to the new tables before deleting the original models.</p>
+                        <p class="fragment">Your best bet is to simply create the new models and write a separate data migrations to copy old data to the new tables before deleting the original models.</p>
                     </section>
                 </section>
                 <section>
@@ -439,7 +431,7 @@ ImportError: cannot import name foo
                 <section>
                     <section>
                         <h2>Receivers Everywhere!</h2>
-                        <p>Decoupling every single model since 2003.</p>
+                        <p>It's like a Hail Mary.</p>
                     </section>
                     <section>
                         <h2>Signals/Receivers Are Useful</h2>
@@ -654,6 +646,11 @@ def get_classification(self):
                             <li>Try and chase these down before refactoring.</li>
                         </ul>
                     </li>
+                    <li class="fragment">Broad Try/Except Blocks
+                        <ul>
+                            <li>try: except: pass  <-- This ain't @PHP</li>
+                        </ul>
+                    </li>
                     <li class="fragment">
                         VCS Requirements
                         <ul>
@@ -674,12 +671,18 @@ def get_classification(self):
             </section>
             <section>
                 <h2>Key Concepts</h2>
-                
-            
+                <ul>
+                	<li class="fragment">Tests first.</li>
+                	<li class="fragment">Dependencies introduce complexity.</li>
+                	<li class="fragment">Organization is important.</li>
+                	<li class="fragment">Watch for hidden signals and receivers.</li>
+                	<li class="fragment">Audit context processors and middleware.</li>
+                	<li class="fragment">Document as you go.</li>
+                </ul>
             </section>
             <section>
-                <h1>Thank You!</h2>
-                <p><a href="http://hirelofty.com/djangocon14">http://hirelofty.com/djangocon14<la></p>
+                <h1>Thank You!</h1>
+                <p><a href="http://hirelofty.com/djangocon14" target=_blank>http://hirelofty.com/djangocon14</a></p>
             </section>
     				
 			</div>
