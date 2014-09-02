@@ -278,27 +278,28 @@ class HeapsortIntegrationTests(HeapsortIntegrationTestCase):
                         <pre><code>
 
 def test_jobs_expire_after_30_days(self):
-	"""
-	A job should no longer be returned by the manager when it expires
-	"""
-	
-	now = datetime.datetime.now()
-	the_future = datetime.timedelta(days=30)
+    """
+    A job should no longer be returned by the manager when it expires
+    """
 
-	datetime_mock = mock.Mock()
+    now = datetime.datetime.now()
+    the_future = datetime.timedelta(days=30)
 
-	with mock.patch.multiple('jobs.models', datetime=datetime_mock):
+    datetime_mock = mock.Mock()
 
-		datetime_mock.datetime.now.return_value = now
-		
-		# Create a job.  The job should be returned by the manager
-		test_job = self._create_job("My Test Job")
-		self.assertTrue(test_job in Job.active.all())
-		
-		# Fast-forard to... THE FUTURE
-		datetime_mock.datetime.now.return_value = now + the_future
-		self.assertFalse(test_job in Job.active.all())
-                        </code></pre>
+    with mock.patch.multiple('jobs.models', datetime=datetime_mock):
+
+        datetime_mock.datetime.now.return_value = now
+
+        # Create a job.  The job should be returned by the manager
+        test_job = self._create_job("My Test Job")
+        self.assertTrue(test_job in Job.active.all())
+
+        # Fast-forard to... THE FUTURE
+        datetime_mock.datetime.now.return_value = now + the_future
+        self.assertFalse(test_job in Job.active.all())
+
+                </code></pre>
                     </section>
                     <section>
                         <h2>Test Coverage: How much is enough?</h2>
