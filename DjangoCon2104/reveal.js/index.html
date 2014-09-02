@@ -68,7 +68,7 @@
                     
                     <section>
                         <h2>Get These Slides</h2>
-                        <p><a href="http://hirelofty.com/djangocon14">hirelofty.com/djangocon14</a></p>
+                        <p><a href="http://hirelofty.com/djangocon14" target=_blank>hirelofty.com/djangocon14</a></p>
                     </section>
 				    
 				</section>
@@ -321,7 +321,7 @@ def test_jobs_expire_after_30_days(self):
                 </section>
                 <section>
                     <section>
-                        <h2>The Patchwork Quilt of<br>Dependencies Project</h2>
+                        <h2>The Patchwork Quilt of<br>Dependencies Pattern</h2>
                         <pre><code>
     $ git diff --stat original_initial_product development -- requirements.txt
      requirements.txt | 135 +------------------------------------------------------------------
@@ -366,14 +366,13 @@ def test_jobs_expire_after_30_days(self):
                 </section>
                 <section>
                     <section>
-                        <h2>The Monolithic App of Death</h2>
+                        <h2>The Monolithic App of Death Pattern</h2>
                         <p>One app to rule them all.</p>
                     </section>
                     <section>
-                        <h2>The Monolithic App of Death</h2>
-                        <p>Monoliths are an organizational nightmare.</p>
+                        <h2>Monoliths are an <br>organizational nightmare.</h2>
                         <ul>
-                            <li class="fragment">You cannot succinctly evaluate the functionality of any one component.</li>
+                            <li class="fragment">You cannot succinctly evaluate the <br>functionality of any one component.</li>
                             <li class="fragment">Nothing is portable.</li>
                             <li class="fragment">Usually rife with <pre><code>from my_app import *</code></pre></li>
                         </ul>
@@ -389,19 +388,18 @@ def test_jobs_expire_after_30_days(self):
                         </ul>
                     </section>
                     <section>
-                        <h2>Migrating Models Across Apps with South</h2>
-                        <p>If the project is pre-production, you can get away with automatic schema migrations.  Otherwise, this is a multi-step process.</p>
-                        <p class="fragment">A great discussion of techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
-                    </section>
-                    <section>
-                        <h2>Migrating Models Across Apps with Django Migrations</h2>
-                        <p class="fragment">Using Django 1.7's migrations is a little more tricky because migrations.RenameModel only takes a model name, and not the app label for the table.</p>
-                        <p class="fragment">Your best bet is to simply create the new models and write a separate data migrations to copy old data to the new tables before deleting the original models.</p>
+                        <h2>Migrating Models Across Apps</h2>
+                        <p>If the project is pre-production, you can get away with automatic schema migrations.</p>
+                        <br><br>
+                        <div class="fragment">
+                            <h3>Using South</h3>
+                            <p>A great discussion of techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
+                        </div>
                     </section>
                 </section>
                 <section>
                     <section>
-                        <h2>The "Every Model is <br>an App" Project</h2>
+                        <h2>The "Every Model is <br>an App" Pattern</h2>
                         <p>"I like my INSTALLED_APPS to be a list of database tables."</p>
                     </section>
                     <section>
@@ -430,7 +428,7 @@ ImportError: cannot import name foo
                 </section>
                 <section>
                     <section>
-                        <h2>Receivers Everywhere!</h2>
+                        <h2>The "Receivers Everywhere!" Pattern</h2>
                         <p>It's like a Hail Mary.</p>
                     </section>
                     <section>
@@ -500,12 +498,12 @@ class UserReceiver(ModelReceiver):
                 </section>
                 <section>
                     <section>
-                        <h2>The "How Did I Live Without Context Processors/Middleware?" Project</h2>
+                        <h2>The "Context Processors/Middleware Are the Coolest Thing Ever" Pattern</h2>
                         <p>Taking DRY to the Max</p>
                     </section>
                     <section>
                         <h3>... (reminds me of when I discovered list comprehensions in Python)</h3>
-                        <pre><code>
+                        <pre><code style="font-size: 24px; line-height: 120%;">
 def publish_all():
     # NOT SURE WHY IM DOING THIS
     # BUT IT IS COOL AS HELL!
