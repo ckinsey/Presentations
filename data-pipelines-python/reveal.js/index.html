@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Building Data Pipelines in Python</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/lofty.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+				    <h1>Building Data Pipelines with Python</h1>
+				</section>
+				
+				<section>
+				    <section>
+                        <h2>Casey Kinsey</h2>
+                        <p><a href="https://twitter.com/cordiskinsey/" target=_blank>@quesokinsey</a></p>
+                        <p><a href="https://github.com/ckinsey" target=_blank>github.com/ckinsey</a></p>
+                        <p><a href="http://linkedin.com/in/caseykinsey" target=_blank>linkedin.com/in/caseykinsey</a></p>
+                    </section>
+                    <section data-background="#34b6e6">
+                        <div style="background: url(assets/lofty_logo_dark.png) center no-repeat; height: 300px;"></div>
+                        <p><a href="http://hirelofty.com" target=_blank style="color: #FFFFFF;">hirelofty.com</a></p>
+                        <p><a href="http://github.com/loftylabs" target=_blank style="color: #FFFFFF;">http://github.com/loftylabs</p>
+                    </section>
+                    <section>
+                        <h2>Get These Slides</h2>
+                        <p><a href="http://hirelofty.com/djangocon14" target=_blank>hirelofty.com/djangocon14</a></p>
+                    </section>
+				    
+				</section>
+				<section>
+				    <section>
+                        <h2>What is a Data Pipeline</h2>
+                        <h3>And When Do I Need It?</h3>
+                        <p class="fragment">A data pipeline is a software system consistently and programmatically moving data from one datastore to another.<p>
+                    </section>
+
+                    <section>
+                    	<h3>Use Cases for Data Pipelines</h3>
+                    	<ul>
+                    		<li class="fragment">External data ingestion</li>
+                    		<li class="fragment">Internal data consolidation</li>
+                    		<li class="fragment">Data cleansing</li>
+                    	</ul>
+                    	<br><br><br>
+                        <p class="fragment"><strong>Particularly</strong> when:<br>
+                        	<ul class="fragment">
+	                         	<li>timing is important</li>
+		                        <li>your data is too large for hands-on analysis.</li>
+		                    </ul>
+		                </p>
+                    </section>
+                </section>
+
+				<section>
+				    <section>
+        				<h2>Why Python?</h2>
+        		    </section>
+        		    <section>
+        		        <h3>Python's Thriving Ecosystem</h3>
+        		        <p>Python's ecosystem includes many world-class open source modules that are well geared-towards data manipulation</p>
+        		        <ul class="fragment">
+            		        <li>Pandas:  The defacto standard data analysis library for Python</li>
+            		        <li>Numpy:  Scientific computing fundamentals</li>
+            		        <li>Numba:  JIT compiling to LLVM code</li>
+            		        <li>Pint, requests, Scrapy, SQLAlchemy, etc. </li>
+            		    </ul>
+
+                    </section>
+        		    <section>
+        		        <h3>Distributability / Portability</h3>
+        		        <ul>
+        		        	<li>High end web frameworks:  Django, Flask, Pyramid</li>
+        		        	<li>A strong learning language (very human readable)</li>
+        		        	<li>Highly maintainable</li>
+        		        </ul>
+        		        	
+                    </section>
+                </section>
+                <section>
+                    <section>
+                    	<h2>The ETL Pattern</h2>
+                    	<p>ETL (Extract, Transform, Load) is an architecture pattern for moving data from one or more systems into another.</p>
+               			<ul>
+							<li><strong>Extraction</strong> is the process by which data is retrieved from source datastores.</li>
+							<li><strong>Transformation</strong> is where all calculations, type conversions, etc are performed.</li>
+							<li><strong>Loading</strong> is the process by which transformed data is sent to output, or target datastores.</li>
+						</ul>
+               		</section>
+               		<section>
+               			<h3>ETL Fundamentals</h3>
+               			<ul>
+							<li>Extraction, Transformation, and Loading should be isolated, independent processes.  As such, after it process completes data needs to be stored in an intermediate storage format.</li>
+							<li>Extract is only for copying, not coercing!</li>
+							<li>Transform is where all calculations and manipulation of the data happens.</li>
+							<li>Loading is a publishing mechanism for transformed data.</li>
+						</ul>
+               		</section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Extract</h2>
+                        <pre><code>
+from logging import getLogger
+
+logger = getLogger('etl-extract')
+
+class BaseExtractor(object):
+    """ Defines base behavior for all extractors """
+    
+    def store(self, extracted_data):
+        """ Stores extracted data (a dictionary) in intermediate storage """
+        my_storage.write(extracted_data)
+        
+    def execute_extractions(self):
+        raise NotImplementedError()
+        
+    def extract(self):
+        logger.info("Starting Extraction")
+        self.execute_extractions()
+        logger.info("Extraction completed")
+		
+		</code></pre>
+                    </section>
+                    <section>
+                        <h2>Extract: Extract Classes</h2>
+                        <p>Build an Extraction module class per-datatype<p>
+						<pre><code>
+
+
+class EmployeeExtractor(BaseExtractor):
+    """ Extracts employee records from a CSV """
+
+    extract_path = "employees.csv"
+    
+    def execute_extractions(self):    
+        with open(self.extract_path, 'r') as csv_file:
+            dataframe = read_csv(csv_file)
+            for idx, entry in dataframe.iterrows():
+                self.store(entry.to_dict())
+        
+
+                </code></pre>
+                    </section>
+                    <section>
+                        <h3>Extract:  Data Source Formats</h3>
+                        <p>If you have many formats, it may make sense to build base classes for each type of source datastore.<p>
+                        <ul>
+                            <li>
+                            	File-based:
+                            	<ul>
+                            		<li>CSVExtractor</li>
+                            		<li>ExcelExtractor</li>
+                            		<li>ShapefileExtractor</li>
+                            	</ul>
+                            </li>
+                            <li>
+                            	Databases: 
+                            	<ul>
+                            		<li>SQLExtractor</li>
+                            		<li>MongoDBExtractor</li>
+                            	</ul>
+                            </li>
+                            <li>
+                            	HTTP APIs:
+                            	<ul>
+                            		<li>RESTExtractor</li>
+                            		<li>SOAPExtractor</li>
+                            	</ul>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Extract:  Intermediate Storage Formats</h2>
+                        <p>Build extract classes 
+                        <ul>
+                            <li>Integration test coverage for high-level Django concepts.</li>
+                            <li>Integration and/or unit test coverage for low-level business critical processes.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Integration Tests</h2>
+                        <p>For our purposes, an integration test end-to-end test of the Python/Django code.</p>
+                        <p>Our goal is coverage, first and foremost.  We want to catch landmines and see that refactors in one module do not unexpectedly affect another.</p>
+                    </section>
+                    <section>
+                        <h2>Integration Tests: An Example</h2>
+                        <pre><code>
+class HeapsortIntegrationTests(HeapsortIntegrationTestCase):
+
+    def test_home_anon(self):
+        """
+        Tests the homepage view works for anonymous users
+        """
+
+        # Unauthenticated
+        self.client.logout()
+        response = self.client.get(reverse('home'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed('home.html')
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Unit Tests</h2>
+                        <p>Our goal is not to achieve full unit test coverage.  Unit tests will be largely negated by upcoming refactoring.</p>
+                        <p>Instead, we'll focus unit testing efforts to core components where accuracy is critical.</p>
+                    </section>
+                    <section>
+                        <h2>Unit Tests: An Example</h2>
+                        <pre><code>
+
+def test_jobs_expire_after_30_days(self):
+    """
+    A job should no longer be returned by the manager when it expires
+    """
+
+    now = datetime.datetime.now()
+    the_future = datetime.timedelta(days=30)
+
+    datetime_mock = mock.Mock()
+
+    with mock.patch.multiple('jobs.models', datetime=datetime_mock):
+
+        datetime_mock.datetime.now.return_value = now
+
+        # Create a job.  The job should be returned by the manager
+        test_job = self._create_job("My Test Job")
+        self.assertTrue(test_job in Job.active.all())
+
+        # Fast-forard to... THE FUTURE
+        datetime_mock.datetime.now.return_value = now + the_future
+        self.assertFalse(test_job in Job.active.all())
+
+                </code></pre>
+                    </section>
+                    <section>
+                        <h2>Test Coverage: How much is enough?</h2>
+                        <ul>
+                            <li class="fragment">Integration test coverage for all Django views and user paths, management commands, 3rd party APIs.</li>
+                            <li class="fragment">Unit test coverage for business critical processes and non view-logic.
+                                <ul>
+                                    <li>Billing processes</li>
+                                    <li>Transactional communication</li>
+                                    <li>Asynchronous tasks</li>
+                                </ul>
+                            </li>
+                            <li class="fragment">Coverage > 95% is ideal.  No individual files left uncovered.</li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <h1>It's Time to <br>Start Hacking</h1>
+                    <h2 class="fragment">There's No Telling<br> What You'll Find</h2>
+                </section>
+                <section>
+                    <section>
+                        <h2>The Patchwork Quilt of<br>Dependencies Pattern</h2>
+                        <pre><code>
+    $ git diff --stat original_initial_product development -- requirements.txt
+     requirements.txt | 135 +------------------------------------------------------------------
+     1 file changed, 2 insertions(+), 133 deletions(-)
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>All Dependencies Introduce Complexities</h2>
+                        <p>Whether or not to use a 3rd party module is a matter of determining if the ends justify the means</p>
+                        <ul>
+                            <li class="fragment">Each dependency is a potential obstacle to upgrades.</li>
+                            <li class="fragment">Low-level Django extensions can conflict and make debugging a nightmare.</li>
+                            <li class="fragment">3rd party modules installed from VCS make no stability or availability guarantees.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Trim the Fat</h2>
+                        <p>Remember that virtual environment you created?</p>
+                        <p class="fragment">Good.  Now throw that shit away.</p>
+                        <p class="fragment">Install the absolute bare minimum of requirements you know you need. 
+                        (Django, South, database drivers, APIs that drive core functionality)</p>
+                    </section>
+                    <section>
+                        <h2>Audit each other requirement one-by-one</h2>
+                        <p class="fragment">Research each requirement and know exactly what it is, how it works, and why it is used.  They will fall into one of three categories.</p>
+                        <ol>
+                            <li class="fragment">Totally unnecessary, or even unused.<ul>
+                                <li>Remove these now.</li>
+                            </ul></li>
+                            <li class="fragment">Potentially unnecessary, but requires refactoring to remove.<ul>
+                                <li>Make a judgement call.</li>
+                            </ul></li>
+                            <li class="fragment">Necessary functionality for the project.</li>
+                        </ol>
+                    </section>
+                    <section>
+                        <h2>Test and Upgrade</h2>
+                        <p class="fragment">Run the tests!  If you missed something, <br>go back to the previous step.</p>
+                        <p class="fragment">Once your tests are passing, this is a good <br>time to upgrade packages.</p>
+                        <p class="fragment">Upgrade.  Test.  Repeat</p>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The Monolithic App of Death Pattern</h2>
+                        <p>One app to rule them all.</p>
+                    </section>
+                    <section>
+                        <h2>Monoliths are an <br>organizational nightmare.</h2>
+                        <ul>
+                            <li class="fragment">You cannot succinctly evaluate the <br>functionality of any one component.</li>
+                            <li class="fragment">Nothing is portable.</li>
+                            <li class="fragment">Usually rife with <pre><code>from my_app import *</code></pre></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Refactoring Monoliths</h2>
+                        <ul>
+                            <li class="fragment">Create a sane app structure.</li>
+                            <li class="fragment">Kill off 'import *' and let PyLint do its thing.</li>
+                            <li class="fragment">Migrate models to their new homes.<ul>
+                                <li>Everything else will follow.</li>
+                            </ul></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Migrating Models Across Apps</h2>
+                        <p>If the project is pre-production, you can get away with automatic schema migrations.</p>
+                        <br><br>
+                        <div class="fragment">
+                            <h3>Using South</h3>
+                            <p>A great discussion of techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
+                        </div>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The "Every Model is <br>an App" Pattern</h2>
+                        <p>"I like my INSTALLED_APPS to be a list of database tables."</p>
+                    </section>
+                    <section>
+                        <h2>The "Every Model is <br>an App" Project</h2>
+                        <p>This type of structure is another organizational nightmare,<br> for similar reasons to a monolith but due to an <br>opposite design pattern.</p>
+                        <ul>
+                            <li class="fragment">You cannot succinctly evaluate the functionality <br>of any one component.</li>
+                            <li class="fragment">Nothing is portable.</li>
+                            <li class="fragment">You'll get very acquainted with:<pre><code>
+Traceback (most recent call last):
+  ...
+  File "/app1/foo.py", line 1, in &lt;module&gt;
+    from app2 import bar
+  File "/app2/bar.py", line 1, in &lt;module&gt;
+    from app1 import foo
+ImportError: cannot import name foo   
+                            </pre></code></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>The "Every Model is <br>an App" Project</h2>
+                        <p class="fragment">Follow the same steps as a monolith.  The challenges are the same; create an organized structure, migrate models across apps into their new home, and everything else follows.</p>
+                        <p class="fragment">This should be less work than a monolith, <br>as one of your apps will become the 'host' for others.</p>
+                        
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The "Receivers Everywhere!" Pattern</h2>
+                        <p>It's like a Hail Mary.</p>
+                    </section>
+                    <section>
+                        <h2>Signals/Receivers Are Useful</h2>
+                        <ul>
+                            <li class="fragment">Signals allow for a decoupling of models <br>which initiate side effects.</li>
+                            <li class="fragment">They are especially useful for triggering <br>side effects in 3rd party code.</li>
+                            <li class="fragment">Signals are great for maintaining data integrity.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>... But Not Always</h2>
+                        <ul>
+                            <li class="fragment">Signal receivers can hide important functionality<br> from developers.</li>
+                            <li class="fragment">Signal receivers can become unnecessary <br>abstraction between two models in the same application.</li>
+                            <li class="fragment">Signal receivers can implement over-zealous business logic.</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Getting Rid of Superfluous <br>Signal Receivers</h2>
+                        <p>Be on the lookout for:</p>
+                        <ul>
+                            <li class="fragment">Signal receivers that interact between two <br><strong>database related models.</strong></li>
+                            <li class="fragment">Signal receivers in which the instance simply <br><strong>operates on itself.</strong></li>
+                        </ul>
+                        <div class="fragment">
+                            <pre><code>     
+class MyModel(models.Model):
+    # ...
+    def save(self, *args, **kwargs):
+        # Pre-save!
+        self.some_property = True
+        
+        super(MyModel, self).save(*args, **kwargs)
+        
+        # Post-save!
+        self.foreign_relation.some_poperty = True
+        self.foreign_relation.save()
+        
+                            </code></pre>
+                        </div>
+                    </section>
+                    <section>
+                        <h2>Getting Rid of Superfluous <br>Signal Receivers</h2>
+                        <p>Be on the lookout for:</p>
+                        <ul>
+                            <li class="fragment">Signal receivers that implement <strong>transactional <br> or business logic.</strong></li>
+                        </ul>
+                        <div class="fragment">
+                                <pre><code>
+class UserReceiver(ModelReceiver):
+    @staticmethod
+    def pre_save(sender, **kwargs):
+        instance = kwargs['instance']
+        instance.notify = instance.pk is None
+        
+    @staticmethod
+    def post_save(sender, **kwargs):
+        instance = kwargs['instance']
+        if instance.notify:
+            NewUserEmail().send(extra_context={'user': instance,}, 
+                to=constants.NOTIFY_EMAILS)
+                                </code></pre>
+                     </div>
+
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The "Context Processors/Middleware Are the Coolest Thing Ever" Pattern</h2>
+                        <p>Taking DRY to the Max</p>
+                    </section>
+                    <section>
+                        <h3>... (reminds me of when I discovered list comprehensions in Python)</h3>
+                        <pre><code style="font-size: 24px; line-height: 120%;">
+def publish_all():
+    # NOT SURE WHY IM DOING THIS
+    # BUT IT IS COOL AS HELL!
+    [p.publish() for p in Post.objects.all()]                                    
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h2>Context Processors</h2>
+                        <p>Context Processors are widely abused and can quickly impair performance.  You should evaluate each context processor in the project and see if:</p>
+                    </section>
+                    <section>
+                        <ul>
+                            <li class="unstyled">1. The context processor is better suited as a templatetag.
+
+                                <pre><code>
+# in myapp.context_processors.py                                
+
+from myapp.utils import products_by_category
+def products(request):
+    return {'products_by_category': products_by_category()}
+                                </code></pre>
+                                <pre><code>
+# in myapp.templatetags           
+
+from django import template
+from myapp.utils import products_by_category
+
+register = template.Library()
+
+@register.assignment_tag(takes_context=True)
+def get_products_by_category(context):
+    return products_by_category()
+                                </code></pre>
+                            </li>
+                        </ul>
+                        <p class="green">Assignment Tags are effective here.</p>
+                    </section>
+                    <section>
+                        <ul>
+                            <li class="unstyled">2. The context processor logic should be refactored into relevant views.
+                                <pre><code>
+# in myapp.context_processors.py                                
+
+from myapp.utils import products_by_category
+def products(request):
+    return {'products_by_category': products_by_category()}
+                                </code></pre>
+                                <pre><code>
+# in myapp.views
+
+from myapp.utils import products_by_category
+
+class MyView(DetailView):
+
+    def get_context_data(self, **kwargs):
+        context = super(MyView, self).get_context_data(kwargs)
+        context.update({'products_by_category': products_by_category()})
+        
+        return context
+                                </code></pre>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Middleware</h2>
+                        <p>Not as widely abused as Context Processors, but potentially have larger performance implications.</p>
+                        <p class="fragment red">Do I need this logic to execute on <em>every single request and/or response?</em></p>
+                        <p class="fragment">If not, you should engineer a way around.</em></p>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>The Undocumented Black Box Full of Black Boxes</h2>
+                        <p># Who put all these hashtags in my code?</p>
+                    </section>
+                    <section>
+                        <p>The only thing worse than code with no comments...</p>
+                        <pre><code>
+def get_classification(self):
+    if self.classification and len(self.classification) == 2:
+        level = CLASSIFICATIONS.get(self.classification[0], '')
+        class_level = self.classification[1]
+        if class_level == 'U':
+            class_level = ''
+        else:
+            class_level = 'class %s '%class_level
+        string = '%s%s'%(class_level, level)
+        return dict({'level':level, 'class': class_level, 'string':string,})
+    else:
+        return None
+                        </code></pre>
+                    </section>
+                    <section> 
+                        <p>... is code with just enough comments to piss you off</p>
+                        <pre><code>
+def get_classification(self):
+    if self.classification and len(self.classification) == 2:
+        level = CLASSIFICATIONS.get(self.classification[0], '')
+        class_level = self.classification[1]
+        if class_level == 'U':
+            class_level = ''
+        else:
+            class_level = 'class %s '%class_level
+        string = '%s%s'%(class_level, level)
+        # returns dict
+        return dict({'level':level, 'class': class_level, 'string':string,})
+    else:
+        return None
+                        </code></pre>
+                </section>
+                <section>
+                    <h2>There's No Easy Way Out of Undocumented Code</h2>
+                    <p>You could try and brute force your way through it, but that's impractical.</p>
+                </section>
+                <section>
+                    <h2>Document as You Go</h2>
+                    <p>Make it policy:  If you edit the code, you document the code.  If you have to dissect code to understand it, comment what you find.</p>
+                </section>
+                <section>
+                    <h2>Document as You Go</h2>
+                    <ul>
+                        <li class="fragment">
+                            Every module, function, class, and method <br>get a docstring. No exceptions!
+                            <ul>
+                                <li>These are the workhorses of your <br>documentation effort.</li>
+                            </ul>
+                        </li>
+                        <li class="fragment">Break apart long, multi-step logical<br> branches with comments.</li>
+                        <li class="fragment">If a statement is difficult read or has some <br>sort of ambiguity, leave a comment!</li>
+                    </ul>
+                </section>
+            </section>
+            <section>
+                <h2>Other Gotchas to Watch For</h2>
+                <ul>
+                    <li class="fragment">Hard-coded URLs
+                        <ul>
+                            <li>Try and chase these down before refactoring.</li>
+                        </ul>
+                    </li>
+                    <li class="fragment">Broad Try/Except Blocks
+                        <ul>
+                            <li>try: except: pass  <-- This ain't @PHP</li>
+                        </ul>
+                    </li>
+                    <li class="fragment">
+                        VCS Requirements
+                        <ul>
+                            <li>Fork 'em!  Whoever owns the project <br>should own the repo.</li>
+                        </ul>
+                    </li>
+                    <li class="fragment">Misnamed Concepts
+                        <ul>
+                            <li>Bite the bullet and rename them.</li>
+                        </ul>
+                    </li>
+                    <li class="fragment">Premature Configuration
+                        <ul>
+                            <li>Pre-configured code overcomplicates <br> deployments.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+            <section>
+                <h2>Key Concepts</h2>
+                <ul>
+                	<li class="fragment">Tests first.</li>
+                	<li class="fragment">Dependencies introduce complexity.</li>
+                	<li class="fragment">Organization is important.</li>
+                	<li class="fragment">Watch for hidden signals and receivers.</li>
+                	<li class="fragment">Audit context processors and middleware.</li>
+                	<li class="fragment">Document as you go.</li>
+                </ul>
+            </section>
+            <section>
+                <h1>Thank You!</h1>
+                <p><a href="http://hirelofty.com/djangocon14" target=_blank>http://hirelofty.com/djangocon14</a></p>
+                <br><br>
+                <h2>Casey Kinsey</h2>
+                <p><a href="mailto:casey@hirelofty.com">casey@hirelofty.com</a></p>
+                <p><a href="http://twitter.com/cordiskinsey">@cordiskinsey</a></p>
+            </section>
+    				
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				slideNumber: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+        <script>
+        // Hold some markup that we might want to add back later
+        /*<ul>
+                            <li class="fragment"><em>Copy</em> the model the new app, create a schema migration.</li>
+                            <li class="fragment"><em>Delete</em> the old model, create a schema migration.</li>
+                            <li class="fragment"><em>Modify</em> your migration for creating the table to perform a <em>rename</em> operation.<ul>
+                                <li><pre><code>
+def forwards(self, orm):
+    # db.create_table(u'newapp_mymodel', (
+    #     ('description', self.gf('django.db.models.fields.TextField')()),
+    #     (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+    # ))
+    db.rename_table('oldapp_mymodel', 'newapp_mymodel') 
+
+def backwards(self, orm):
+    #db.delete_table('newapp_mymodel')     
+    db.rename_table('newapp_mymodel', 'oldapp_mymodel')
+    
+                                </code></pre></li>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Migrating Models Across Apps with South (continued)</h2>
+                        <ul>
+                            <li><em>Modify</em> the migration for deleting the old model to <em>depend on</em> your rename migration.
+                                <pre><code>
+class Migration(SchemaMigration):
+    depends_on = (('newapp', '0001_initial'),)
+    
+    def forward(self):
+        pass
+        
+    def backward(self):
+        pass
+                                </code></pre>
+                            </li>
+                            <li>Take extra care with ContentTypes and relationships.</li>
+                        </ul>
+                        <br><br>*/
+        </script>
+
+	</body>
+</html>
