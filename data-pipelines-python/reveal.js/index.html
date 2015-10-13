@@ -136,6 +136,7 @@
                 <section>
                     <section>
                         <h2>Extract</h2>
+                        <p>A base class lets you enforce behavior across all ETL Extract modules.</p>
                         <pre><code>
 from logging import getLogger
 
@@ -152,7 +153,7 @@ class BaseExtractor(object):
         raise NotImplementedError()
         
     def extract(self):
-        logger.info("Starting Extraction")
+        logger.info("Extraction starting")
         self.execute_extractions()
         logger.info("Extraction completed")
 		
@@ -160,14 +161,16 @@ class BaseExtractor(object):
                     </section>
                     <section>
                         <h2>Extract: Extract Classes</h2>
-                        <p>Build an Extraction module class per-datatype<p>
+                        <p>Build an Extractor class per-datatype<p>
 						<pre><code>
 
 
 class EmployeeExtractor(BaseExtractor):
     """ Extracts employee records from a CSV """
 
-    extract_path = "employees.csv"
+    def __init__(self, *args, **kwargs):
+        self.extract_path = args[0]
+        super().__init__()
     
     def execute_extractions(self):    
         with open(self.extract_path, 'r') as csv_file:
@@ -180,7 +183,7 @@ class EmployeeExtractor(BaseExtractor):
                     </section>
                     <section>
                         <h3>Extract:  Data Source Formats</h3>
-                        <p>If you have many formats, it may make sense to build base classes for each type of source datastore.<p>
+                        <p>If you have many sources, it may make sense to build base classes for each type of source datastore.<p>
                         <ul>
                             <li>
                             	File-based:
@@ -207,455 +210,444 @@ class EmployeeExtractor(BaseExtractor):
                         </ul>
                     </section>
                     <section>
-                        <h2>Extract:  Intermediate Storage Formats</h2>
-                        <p>Build extract classes 
+                        <h3>Extract:  Intermediate Storage Formats</h3>
+                        <p>Many options to choose from, and none are always the right answer.  This is esoteric to your dataset.</p>
                         <ul>
-                            <li>Integration test coverage for high-level Django concepts.</li>
-                            <li>Integration and/or unit test coverage for low-level business critical processes.</li>
+                            <li>JSON<ul><li>
+                                Does not store much information about datatypes,<br> 
+                                which is good for extracted data.<br>
+                                Easy to parse with Python.</li></ul>
+                            </li>
+                            <li>CSV<ul><li>
+                                Easily parsed with Pandas.<br>
+                                Can be very useful for aggregations in the upcoming<br> 
+                                Transform step</li></ul>
+                            </li>
+                            <li>Structured Database<ul><li>
+                                Highly persistent and easy to select one entry<br> 
+                                at a time, but slow to write.<br>
+                                Let all columns be nullable and use varchars / text.</li></ul>
+                            </li>
+                            
+                        </ul>
+                    </section>
+                    
+                </section>
+                <section>
+                    <section>
+                        <h2>Transform</h2>
+                        <p>A base class lets you enforce behavior across all ETL Transform modules.</p>
+                        <pre><code>
+class BaseTransformer:
+    """The BaseTransformer enforces basic behavior of transformations on extracted data."""
+
+    def __init__(self, *args, **kwargs):
+        """ Retrieve the object which we intend to transform. """
+        self.extracted_data = args[0]
+        super().__init__()
+        
+    def store(self, transformed_data):
+        """ Writes transformed_data to intermediate storage """
+        storage_instance.write(transformed_data)
+        
+    def execute_transformations(self):
+        raise NotImplementedError()
+        
+    def transform(self):
+        logger.info("Transformation starting")
+        self.execute_transformations()
+        logger.info("Transformation completed")
+                            </code></pre>
+                    </section>
+                    <section>
+                        <h3>Transform: Transformer Classes</h3>
+                        <p>Create a transformer per-datatype</p>
+                        <pre><code>
+class EmployeeTransformer(BaseTransformer):
+
+    def execute_transformations(self):
+        ex_data = self.extracted_data
+        
+        transformed_data = {
+            'employee_id': int(ex_data['employee_id'],
+            'name': str(ex_data['name'],
+        }
+        
+        lat, long = geocode_address(ex_data['address'])
+        transformed_data.update({
+            'lat': lat,
+            'long': long,
+        })
+        
+        return transformed_data
+                            </code></pre>
+                    </section>
+                    <section>
+                        <h3>Transform: Intermediate Storage Formats</h3>
+                        <p>Be more picky about storage formats for transformed data.</p>
+                        <ul>
+                            <li>JSON / CSV<ul><li>
+                                Still easily parsed by Python.<br>
+                                No built-in way of keeping your data typed.</li></ul>
+                            </li>
+                            <li>Python Pickles<ul><li>
+                                Easy to store and un-pickle.<br>
+                                Retains a perfect Pythonic representation of transformed data.
+                                </li></ul>
+                            </li>
+                            <li>Structured Database<ul><li>
+                                Particularly useful if your target datastore is a DB.<br>
+                                Let database schema reflect the same types as your target.</li></ul>
+                            </li>
                         </ul>
                     </section>
                     <section>
-                        <h2>Integration Tests</h2>
-                        <p>For our purposes, an integration test end-to-end test of the Python/Django code.</p>
-                        <p>Our goal is coverage, first and foremost.  We want to catch landmines and see that refactors in one module do not unexpectedly affect another.</p>
+                        <h3>Transform: Intermediate Storage Formats</h3>
+                        <p>Be more picky about storage formats for transformed data.</p>
+                        <ul>
+                            <li>JSON / CSV<ul><li>
+                                Still easily parsed by Python.<br>
+                                No built-in way of keeping your data typed.</li></ul>
+                            </li>
+                            <li>Python Pickles<ul><li>
+                                Easy to store and un-pickle.<br>
+                                Retains a perfect Pythonic representation of transformed data.
+                                </li></ul>
+                            </li>
+                            <li>Structured Database<ul><li>
+                                Particularly useful if your target datastore is a DB.<br>
+                                Let database schema reflect the same types as your target.</li></ul>
+                            </li>
+                        </ul>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Load</h2>
+                        <p>A base class enforces behavior across all ETL Load modules</p>
+                        <pre><code>
+                            
+class BaseLoader(object):
+    """ The BaseLoader enforces basic behavior of loading with transformed data """
+    
+    target_model = None
+    idempotent_on = []
+
+    def get_model(self):
+        """ Returns an ORM Model for the target storage. """
+        return self.target_model
+        
+    def execute_loading(self, transformed_data):
+        raise NotImplementedError() 
+
+    def load(self, transformed_data):
+        logger.info('Load starting')
+        self.execute_loading(transformed_data)
+        logger.info('Load completed')
+        </code></pre>
                     </section>
                     <section>
-                        <h2>Integration Tests: An Example</h2>
+                        <h3>Load: Loader Classes</h2>
+                        <p>Build a Loader class per-datatype<p>
                         <pre><code>
-class HeapsortIntegrationTests(HeapsortIntegrationTestCase):
+                            
+class EmployeeLoader(object):
+    """ The EmployeeLoader loads transformed employee data into a Django model """
+    
+    target_model = EmployeeModel
+        
+    def execute_loading(self, transformed_data):
+        """ A non-idempotent example of loading """
+        
+        model = self.get_model()
+        instance = model(**transformed_data) 
+        instance.save()   
+        
+        </code></pre>
+                    </section>
+                    <section>
+                        <h3>Load: Idempotency</h2>
+                        <p>Idempotent loading is a big advantage in an ETL pipeline<p>
+                        <pre><code>
+class EmployeeLoader(object):
+    """ The EmployeeLoader loads transformed employee data into a Django model """
+    
+    target_model = EmployeeModel
+    idempontent_on = ['employee_id']
+        
+    def execute_loading(self, transformed_data):
+        """ A idempotent example of loading """
+        model = self.get_model()
 
-    def test_home_anon(self):
-        """
-        Tests the homepage view works for anonymous users
-        """
+        lookup_kwargs = {k: transformed_data[k] for k in self.idempontent_on}
+        instance, was_created = model.objects.get_or_create(**lookup_kwargs)
+        # get_or_create(employee_id=transformed_data['employee_id'])
 
-        # Unauthenticated
-        self.client.logout()
-        response = self.client.get(reverse('home'))
+        for k, v in transformed_data.items():
+            setattr(instance, k, v)        
+        instance.save()
+        
+        </code></pre>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Tying It Together</h2>
+                        <p>Let's look at how our ETL pipeline could be run.</p>
+                        <pre><code>                        
+def extracted_pop():
+    # ...
+    
+def transformed_pop():
+    # ...        
+    
+def run_etl():
+    """ Executes and manages the ETL pipeline """
+    
+    extractor = EmployeeExtractor('employees.csv')
+    extractor.extract()
+    
+    transformer = EmployeeTransformer(extracted_pop())
+    transformer.transform()
+        
+    loader = EmployeeLoader(transformed_pop())
+    loader.load()
+    </code></pre>
+                    </section>
+                    <section>
+                        <h3>Tying It Together</h3>
+                        <p class="fragment">Our example demonstrates the flow of one item through ETL pipeline.</p>
+                        <p class="fragment">Still synchronous--loading executes after transform.</p>
+                        <p class="fragment">How can we make each process run asynchronously?</p>    
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>Celery</h2>
+                        <h3>Asynchronous Processing for Python</h3>
+                    </section>
+                    <section>
+                        <h3>Celery</h3>
+                        <p>"Celery is an asynchronous task queue/job queue based on distributed message passing."</p>
+                        <p>Easily designate Python functions as asynchronous tasks.</p>
+                        <p>Tasks are picked up by "worker" processes.  You can run many workers on many machines.</p>
+                        <img src="https://wiki.openstack.org/w/images/b/b8/CeleryArch.jpg">
+                    </section>
+                    <section>
+                        <h3>Celery: Defining Tasks</h3>
+                        <p>Let's imagine how we'd divide our example ETL pipeline into tasks<p>
+                        <pre><code>
+# tasks.py
+from .celery import etl_app
 
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed('home.html')
+@etl_app.task
+def extract(filename):
+    e = EmployeeExtractor(filename)
+    e.extract()
+
+@etl_app.task
+def transform(ed_key):
+    t = EmployeeTransformer(ed_key)
+    t.transform()
+
+@etl_app.task
+def load(td_key):
+    l = EmployeeLoader(td_key)
+    l.load()
                         </code></pre>
                     </section>
                     <section>
-                        <h2>Unit Tests</h2>
-                        <p>Our goal is not to achieve full unit test coverage.  Unit tests will be largely negated by upcoming refactoring.</p>
-                        <p>Instead, we'll focus unit testing efforts to core components where accuracy is critical.</p>
-                    </section>
-                    <section>
-                        <h2>Unit Tests: An Example</h2>
+                        <h3>Celery: Calling Tasks</h3>
+                        <p>Now lets imagine how we'd schedule tasks from our pipeline.</p>
                         <pre><code>
-
-def test_jobs_expire_after_30_days(self):
-    """
-    A job should no longer be returned by the manager when it expires
-    """
-
-    now = datetime.datetime.now()
-    the_future = datetime.timedelta(days=30)
-
-    datetime_mock = mock.Mock()
-
-    with mock.patch.multiple('jobs.models', datetime=datetime_mock):
-
-        datetime_mock.datetime.now.return_value = now
-
-        # Create a job.  The job should be returned by the manager
-        test_job = self._create_job("My Test Job")
-        self.assertTrue(test_job in Job.active.all())
-
-        # Fast-forard to... THE FUTURE
-        datetime_mock.datetime.now.return_value = now + the_future
-        self.assertFalse(test_job in Job.active.all())
-
-                </code></pre>
+# extract.py
+from .tasks import transform
+                        
+class BaseExtractor(object):
+    """ Defines base behavior for all extractors """
+    
+    def store(self, extracted_data):
+        """ Stores extracted data (a dictionary) in intermediate storage """
+        ed_key = my_storage.write(extracted_data)
+        
+        # Schedule a task for the transformation of this data
+        tansform.delay(ed_key)
+        
+                        </code></pre>
                     </section>
                     <section>
-                        <h2>Test Coverage: How much is enough?</h2>
+                        <h3>Celery: Calling Tasks</h3>
+                        <p>On the transformer side of things...</p>
+                        <pre><code>
+# trasform.py
+from .tasks import load
+                        
+class BaseTransformer(object):
+    """ Defines base behavior for all extractors """
+    
+    def __init__(self, ed_key, *kwargs):
+        """ Look up data in intermediate storage based on key in ed_key """
+        self.extracted_data = extracted_lookup(ed_key)
+        
+    def store(self, transformed_data):
+        td_key = storage_instance.write(transformed_data)
+        load.delay(td_key)
+                        </code></pre>
+                        <p>And apply similar logic to the BaseLoader class</p>
+                    </section>
+                    <section>
+                        <h3>Celery: Asynchronous ETL</h3>
+                        <p>Now how is our process executed?</p>
+                        <pre><code>
+from .tasks import extract        
+extract.delay('employees.csv')
+                        </code></pre>
+                        <p>The task queue will fill with transform/load tasks until they are exhausted by the worker pool.</p>
+                    </section>
+                </section>
+                <section>
+                    <section>
+                        <h2>ETL Registry</h2>
+                        <h3>Managing Many datatypes</h3>
+                    </section>
+                    <section>
+                        <h3>ETL Registry: Architecture</h3>
+                        <p>Implementing a registry pattern allows us to broaden the pipeline with many ETL sources.</p>
+                        <p>The relationships between Extract, Transform, and Load classes are stored at runtime.</p>
+                        <p>A reference to the appropriate class can be linked to records in intermediate storage.</p>
+                        
+                        <p>https://gist.github.com/ckinsey/762394f280dec30f012b</p>
+                    </section>
+                    <section>
+                        <h3>ETL Registry: Looking Up Classes</h3>
+                        <p>Let's see how this can be applied to a Celery task</p>
+                        
+                        <pre><code>
+# tasks.py
+from .celery import etl_app
+from .etl_registry import registry
+
+@etl_app.task
+def transform(ed_key, transformer_name):
+    """ Look up the transformer referenced by name and instantiate / execute it """
+    
+    entry = registry.get_entry(transformer=transformer_name)
+    transformer_class = entry['class']
+
+    t = transformer_class(ed_key)
+    t.transform()
+    </code></pre>
+                    </section>
+                    <section>
+                        <h3>ETL Registry: Looking Up Classes</h3>
+                        <p>How did the task receive the transformer name?</p>
+                        
+                        <pre><code>
+from .etl_registry import registry
+
+class BaseExtractor(object):
+    """ Defines base behavior for all extractors """
+    
+    def store(self, extracted_data):
+        """ Stores extracted data (a dictionary) in intermediate storage """
+        ed_key = my_storage.write(extracted_data)
+        
+        # Look up transformer name
+        entry = registry.get_entry(extractor=self.__name__)
+        
+        # Schedule a task for the transformation of this data
+        transform.delay(ed_key, entry['transformer']['name'])
+        </code></pre>   
+                    </section>
+                    <section>
+                        <h3>ETL Registry: Running ETL</h3>
+                        <p>Kicking off our ETL pipeline is still simple.</p>
+                        <pre><code>
+from etl_registry import registry
+from .tasks import extract        
+
+def run_etl():
+    for entry in registry._registry:
+        e = entry['extractor']['class']()
+        e.extract()
+                        </code></pre>
+                    </section>
+                    
+                </section>
+                <section>
+                    <section>
+                        <h2>Tuning Your Cluster</h2>
+                        <p>There are many ways to increase throughput in your distributed pipeline.</p>
                         <ul>
-                            <li class="fragment">Integration test coverage for all Django views and user paths, management commands, 3rd party APIs.</li>
-                            <li class="fragment">Unit test coverage for business critical processes and non view-logic.
+                            <li>Add workers
                                 <ul>
-                                    <li>Billing processes</li>
-                                    <li>Transactional communication</li>
-                                    <li>Asynchronous tasks</li>
+                                    <li>Adding workers to the general pool will increase<br>
+                                     the number of available threads for Extract/Transform/Load<br>
+                                     uniformly</li>
                                 </ul>
                             </li>
-                            <li class="fragment">Coverage > 95% is ideal.  No individual files left uncovered.</li>
-                        </ul>
-                    </section>
-                </section>
-                <section>
-                    <h1>It's Time to <br>Start Hacking</h1>
-                    <h2 class="fragment">There's No Telling<br> What You'll Find</h2>
-                </section>
-                <section>
-                    <section>
-                        <h2>The Patchwork Quilt of<br>Dependencies Pattern</h2>
-                        <pre><code>
-    $ git diff --stat original_initial_product development -- requirements.txt
-     requirements.txt | 135 +------------------------------------------------------------------
-     1 file changed, 2 insertions(+), 133 deletions(-)
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h2>All Dependencies Introduce Complexities</h2>
-                        <p>Whether or not to use a 3rd party module is a matter of determining if the ends justify the means</p>
-                        <ul>
-                            <li class="fragment">Each dependency is a potential obstacle to upgrades.</li>
-                            <li class="fragment">Low-level Django extensions can conflict and make debugging a nightmare.</li>
-                            <li class="fragment">3rd party modules installed from VCS make no stability or availability guarantees.</li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Trim the Fat</h2>
-                        <p>Remember that virtual environment you created?</p>
-                        <p class="fragment">Good.  Now throw that shit away.</p>
-                        <p class="fragment">Install the absolute bare minimum of requirements you know you need. 
-                        (Django, South, database drivers, APIs that drive core functionality)</p>
-                    </section>
-                    <section>
-                        <h2>Audit each other requirement one-by-one</h2>
-                        <p class="fragment">Research each requirement and know exactly what it is, how it works, and why it is used.  They will fall into one of three categories.</p>
-                        <ol>
-                            <li class="fragment">Totally unnecessary, or even unused.<ul>
-                                <li>Remove these now.</li>
-                            </ul></li>
-                            <li class="fragment">Potentially unnecessary, but requires refactoring to remove.<ul>
-                                <li>Make a judgement call.</li>
-                            </ul></li>
-                            <li class="fragment">Necessary functionality for the project.</li>
-                        </ol>
-                    </section>
-                    <section>
-                        <h2>Test and Upgrade</h2>
-                        <p class="fragment">Run the tests!  If you missed something, <br>go back to the previous step.</p>
-                        <p class="fragment">Once your tests are passing, this is a good <br>time to upgrade packages.</p>
-                        <p class="fragment">Upgrade.  Test.  Repeat</p>
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>The Monolithic App of Death Pattern</h2>
-                        <p>One app to rule them all.</p>
-                    </section>
-                    <section>
-                        <h2>Monoliths are an <br>organizational nightmare.</h2>
-                        <ul>
-                            <li class="fragment">You cannot succinctly evaluate the <br>functionality of any one component.</li>
-                            <li class="fragment">Nothing is portable.</li>
-                            <li class="fragment">Usually rife with <pre><code>from my_app import *</code></pre></li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Refactoring Monoliths</h2>
-                        <ul>
-                            <li class="fragment">Create a sane app structure.</li>
-                            <li class="fragment">Kill off 'import *' and let PyLint do its thing.</li>
-                            <li class="fragment">Migrate models to their new homes.<ul>
-                                <li>Everything else will follow.</li>
-                            </ul></li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Migrating Models Across Apps</h2>
-                        <p>If the project is pre-production, you can get away with automatic schema migrations.</p>
-                        <br><br>
-                        <div class="fragment">
-                            <h3>Using South</h3>
-                            <p>A great discussion of techniques is on StackOverflow:  <a href="http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one">http://stackoverflow.com/questions/1258130/how-do-i-migrate-a-model-out-of-one-django-app-and-into-a-new-one</a></p>
-                        </div>
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>The "Every Model is <br>an App" Pattern</h2>
-                        <p>"I like my INSTALLED_APPS to be a list of database tables."</p>
-                    </section>
-                    <section>
-                        <h2>The "Every Model is <br>an App" Project</h2>
-                        <p>This type of structure is another organizational nightmare,<br> for similar reasons to a monolith but due to an <br>opposite design pattern.</p>
-                        <ul>
-                            <li class="fragment">You cannot succinctly evaluate the functionality <br>of any one component.</li>
-                            <li class="fragment">Nothing is portable.</li>
-                            <li class="fragment">You'll get very acquainted with:<pre><code>
-Traceback (most recent call last):
-  ...
-  File "/app1/foo.py", line 1, in &lt;module&gt;
-    from app2 import bar
-  File "/app2/bar.py", line 1, in &lt;module&gt;
-    from app1 import foo
-ImportError: cannot import name foo   
-                            </pre></code></li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>The "Every Model is <br>an App" Project</h2>
-                        <p class="fragment">Follow the same steps as a monolith.  The challenges are the same; create an organized structure, migrate models across apps into their new home, and everything else follows.</p>
-                        <p class="fragment">This should be less work than a monolith, <br>as one of your apps will become the 'host' for others.</p>
-                        
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>The "Receivers Everywhere!" Pattern</h2>
-                        <p>It's like a Hail Mary.</p>
-                    </section>
-                    <section>
-                        <h2>Signals/Receivers Are Useful</h2>
-                        <ul>
-                            <li class="fragment">Signals allow for a decoupling of models <br>which initiate side effects.</li>
-                            <li class="fragment">They are especially useful for triggering <br>side effects in 3rd party code.</li>
-                            <li class="fragment">Signals are great for maintaining data integrity.</li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>... But Not Always</h2>
-                        <ul>
-                            <li class="fragment">Signal receivers can hide important functionality<br> from developers.</li>
-                            <li class="fragment">Signal receivers can become unnecessary <br>abstraction between two models in the same application.</li>
-                            <li class="fragment">Signal receivers can implement over-zealous business logic.</li>
-                        </ul>
-                    </section>
-                    <section>
-                        <h2>Getting Rid of Superfluous <br>Signal Receivers</h2>
-                        <p>Be on the lookout for:</p>
-                        <ul>
-                            <li class="fragment">Signal receivers that interact between two <br><strong>database related models.</strong></li>
-                            <li class="fragment">Signal receivers in which the instance simply <br><strong>operates on itself.</strong></li>
-                        </ul>
-                        <div class="fragment">
-                            <pre><code>     
-class MyModel(models.Model):
-    # ...
-    def save(self, *args, **kwargs):
-        # Pre-save!
-        self.some_property = True
-        
-        super(MyModel, self).save(*args, **kwargs)
-        
-        # Post-save!
-        self.foreign_relation.some_poperty = True
-        self.foreign_relation.save()
-        
-                            </code></pre>
-                        </div>
-                    </section>
-                    <section>
-                        <h2>Getting Rid of Superfluous <br>Signal Receivers</h2>
-                        <p>Be on the lookout for:</p>
-                        <ul>
-                            <li class="fragment">Signal receivers that implement <strong>transactional <br> or business logic.</strong></li>
-                        </ul>
-                        <div class="fragment">
-                                <pre><code>
-class UserReceiver(ModelReceiver):
-    @staticmethod
-    def pre_save(sender, **kwargs):
-        instance = kwargs['instance']
-        instance.notify = instance.pk is None
-        
-    @staticmethod
-    def post_save(sender, **kwargs):
-        instance = kwargs['instance']
-        if instance.notify:
-            NewUserEmail().send(extra_context={'user': instance,}, 
-                to=constants.NOTIFY_EMAILS)
-                                </code></pre>
-                     </div>
-
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>The "Context Processors/Middleware Are the Coolest Thing Ever" Pattern</h2>
-                        <p>Taking DRY to the Max</p>
-                    </section>
-                    <section>
-                        <h3>... (reminds me of when I discovered list comprehensions in Python)</h3>
-                        <pre><code style="font-size: 24px; line-height: 120%;">
-def publish_all():
-    # NOT SURE WHY IM DOING THIS
-    # BUT IT IS COOL AS HELL!
-    [p.publish() for p in Post.objects.all()]                                    
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h2>Context Processors</h2>
-                        <p>Context Processors are widely abused and can quickly impair performance.  You should evaluate each context processor in the project and see if:</p>
-                    </section>
-                    <section>
-                        <ul>
-                            <li class="unstyled">1. The context processor is better suited as a templatetag.
-
-                                <pre><code>
-# in myapp.context_processors.py                                
-
-from myapp.utils import products_by_category
-def products(request):
-    return {'products_by_category': products_by_category()}
-                                </code></pre>
-                                <pre><code>
-# in myapp.templatetags           
-
-from django import template
-from myapp.utils import products_by_category
-
-register = template.Library()
-
-@register.assignment_tag(takes_context=True)
-def get_products_by_category(context):
-    return products_by_category()
-                                </code></pre>
-                            </li>
-                        </ul>
-                        <p class="green">Assignment Tags are effective here.</p>
-                    </section>
-                    <section>
-                        <ul>
-                            <li class="unstyled">2. The context processor logic should be refactored into relevant views.
-                                <pre><code>
-# in myapp.context_processors.py                                
-
-from myapp.utils import products_by_category
-def products(request):
-    return {'products_by_category': products_by_category()}
-                                </code></pre>
-                                <pre><code>
-# in myapp.views
-
-from myapp.utils import products_by_category
-
-class MyView(DetailView):
-
-    def get_context_data(self, **kwargs):
-        context = super(MyView, self).get_context_data(kwargs)
-        context.update({'products_by_category': products_by_category()})
-        
-        return context
-                                </code></pre>
+                            <li>Dedicate workers to tasks
+                                <ul>
+                                    <li>Celery allows you to setup multiple task queues in an<br>
+                                    application.  Specific tasks can then be assigned to a<br>
+                                    specific queue, and they will ignore tasks in other queues.
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
                     </section>
                     <section>
-                        <h2>Middleware</h2>
-                        <p>Not as widely abused as Context Processors, but potentially have larger performance implications.</p>
-                        <p class="fragment red">Do I need this logic to execute on <em>every single request and/or response?</em></p>
-                        <p class="fragment">If not, you should engineer a way around.</em></p>
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>The Undocumented Black Box Full of Black Boxes</h2>
-                        <p># Who put all these hashtags in my code?</p>
-                    </section>
-                    <section>
-                        <p>The only thing worse than code with no comments...</p>
+                        <h3>Tuning Your Cluster</h3>
+                        <p>Define which tasks are assigned to which queues in your Celery config<p>
                         <pre><code>
-def get_classification(self):
-    if self.classification and len(self.classification) == 2:
-        level = CLASSIFICATIONS.get(self.classification[0], '')
-        class_level = self.classification[1]
-        if class_level == 'U':
-            class_level = ''
-        else:
-            class_level = 'class %s '%class_level
-        string = '%s%s'%(class_level, level)
-        return dict({'level':level, 'class': class_level, 'string':string,})
-    else:
-        return None
+# celery.py
+
+CELERY_ROUTES = {
+    # Dotted path to your task function
+    'etl.tasks.extract': {'queue': 'extract'},
+    'etl.tasks.transform': {'queue': 'transform'},
+    'etl.tasks.load': {'queue': 'load'},
+}   
+
                         </code></pre>
                     </section>
-                    <section> 
-                        <p>... is code with just enough comments to piss you off</p>
+                    <section>
+                        <h3>Tuning Your Cluster</h3>
+                        <p>When you deploy celery workers, specify the queue for each set of workers or each machine.<p>
                         <pre><code>
-def get_classification(self):
-    if self.classification and len(self.classification) == 2:
-        level = CLASSIFICATIONS.get(self.classification[0], '')
-        class_level = self.classification[1]
-        if class_level == 'U':
-            class_level = ''
-        else:
-            class_level = 'class %s '%class_level
-        string = '%s%s'%(class_level, level)
-        # returns dict
-        return dict({'level':level, 'class': class_level, 'string':string,})
-    else:
-        return None
+# start_celery.sh
+
+# Start 4 threads on the extract queue
+celery -A my_etl_pipeline worker --concurrency=4 -Q extract
+
+# Start 8 threads on the transform queue
+celery -A my_etl_pipeline worker --concurrency=8 -Q transform
+
+# Start 4 threads on the load queue
+celery -A my_etl_pipeline worker --concurrency=4 -Q load
+
                         </code></pre>
+                    </section>
                 </section>
                 <section>
-                    <h2>There's No Easy Way Out of Undocumented Code</h2>
-                    <p>You could try and brute force your way through it, but that's impractical.</p>
-                </section>
-                <section>
-                    <h2>Document as You Go</h2>
-                    <p>Make it policy:  If you edit the code, you document the code.  If you have to dissect code to understand it, comment what you find.</p>
-                </section>
-                <section>
-                    <h2>Document as You Go</h2>
+                    <h2>Where To Go From Here</h2>
+                    <p>Some concepts to look into that weren't covered today</p>
                     <ul>
-                        <li class="fragment">
-                            Every module, function, class, and method <br>get a docstring. No exceptions!
-                            <ul>
-                                <li>These are the workhorses of your <br>documentation effort.</li>
-                            </ul>
-                        </li>
-                        <li class="fragment">Break apart long, multi-step logical<br> branches with comments.</li>
-                        <li class="fragment">If a statement is difficult read or has some <br>sort of ambiguity, leave a comment!</li>
+                        <li class="fragment">Read more about <a href="http://docs.celeryproject.org/en/latest/index.html">Celery</a>, namely Beat</li>
+                        <li class="fragment">Add abstraction (with care) to Transformer classes.</li>
+                        <li class="fragment">Explore relationship discovery in target datastores.</li>
+                        <li class="fragment">Layer in analytics/reporting tools (ELK stack, Flower).</li>
                     </ul>
                 </section>
-            </section>
-            <section>
-                <h2>Other Gotchas to Watch For</h2>
-                <ul>
-                    <li class="fragment">Hard-coded URLs
-                        <ul>
-                            <li>Try and chase these down before refactoring.</li>
-                        </ul>
-                    </li>
-                    <li class="fragment">Broad Try/Except Blocks
-                        <ul>
-                            <li>try: except: pass  <-- This ain't @PHP</li>
-                        </ul>
-                    </li>
-                    <li class="fragment">
-                        VCS Requirements
-                        <ul>
-                            <li>Fork 'em!  Whoever owns the project <br>should own the repo.</li>
-                        </ul>
-                    </li>
-                    <li class="fragment">Misnamed Concepts
-                        <ul>
-                            <li>Bite the bullet and rename them.</li>
-                        </ul>
-                    </li>
-                    <li class="fragment">Premature Configuration
-                        <ul>
-                            <li>Pre-configured code overcomplicates <br> deployments.</li>
-                        </ul>
-                    </li>
-                </ul>
-            </section>
-            <section>
-                <h2>Key Concepts</h2>
-                <ul>
-                	<li class="fragment">Tests first.</li>
-                	<li class="fragment">Dependencies introduce complexity.</li>
-                	<li class="fragment">Organization is important.</li>
-                	<li class="fragment">Watch for hidden signals and receivers.</li>
-                	<li class="fragment">Audit context processors and middleware.</li>
-                	<li class="fragment">Document as you go.</li>
-                </ul>
-            </section>
-            <section>
-                <h1>Thank You!</h1>
-                <p><a href="http://hirelofty.com/djangocon14" target=_blank>http://hirelofty.com/djangocon14</a></p>
-                <br><br>
-                <h2>Casey Kinsey</h2>
-                <p><a href="mailto:casey@hirelofty.com">casey@hirelofty.com</a></p>
-                <p><a href="http://twitter.com/cordiskinsey">@cordiskinsey</a></p>
-            </section>
+                <section>
+                    <h1>Thank You!</h1>
+                    <p><a href="http://hirelofty.com/pipelines-with-python/" target=_blank>http://hirelofty.com/pipelines-with-python/</a></p>
+                    <br><br>
+                    <h2>Casey Kinsey</h2>
+                    <p><a href="mailto:casey@hirelofty.com">casey@hirelofty.com</a></p>
+                    <p><a href="http://twitter.com/cordiskinsey">@quesokinsey</a></p>
+                    <p><a href="http://github.com/ckinsey">ckinsey on GitHub</a></p>
+                </section>
     				
 			</div>
 
