@@ -68,21 +68,22 @@
 				    <section>
                         <h2>What is a Data Pipeline</h2>
                         <h3>And When Do I Need It?</h3>
-                        <p class="fragment">A data pipeline is a software system consistently and programmatically moving data from one datastore to another.<p>
+                        <p class="fragment">A data pipeline is a software system consistently and programmatically moving data out of a datastore, manipulating it, and moving it back to a datastore.<p>
                     </section>
 
                     <section>
                     	<h3>Use Cases for Data Pipelines</h3>
                     	<ul>
-                    		<li class="fragment">External data ingestion</li>
-                    		<li class="fragment">Internal data consolidation</li>
-                    		<li class="fragment">Data cleansing</li>
+                    		<li>Data Ingestion</li>
+                    		<li>Data Consolidation</li>
+                    		<li>Data Cleansing</li>
+                    		<li>Data Analysis</li>
                     	</ul>
                     	<br><br><br>
-                        <p class="fragment"><strong>Particularly</strong> when:<br>
-                        	<ul class="fragment">
-	                         	<li>timing is important</li>
-		                        <li>your data is too large for hands-on analysis.</li>
+                        <p><strong>Particularly</strong> when:<br>
+                        	<ul>
+	                         	<li>Timing is important (real time)</li>
+		                        <li>Your data is too large for hands-on analysis.</li>
 		                    </ul>
 		                </p>
                     </section>
@@ -116,97 +117,40 @@
                 <section>
                     <section>
                     	<h2>The ETL Pattern</h2>
-                    	<p>ETL (Extract, Transform, Load) is an architecture pattern for moving data from one or more systems into another.</p>
+                    	<p>ETL (Extract/Expand, Transform, Load) is an architecture pattern for moving data from one or more systems into another.</p>
                			<ul>
-							<li><strong>Extraction</strong> is the process by which data is retrieved from source datastores.</li>
-							<li><strong>Transformation</strong> is where all calculations, type conversions, etc are performed.</li>
-							<li><strong>Loading</strong> is the process by which transformed data is sent to output, or target datastores.</li>
+							<li class="fragment"><strong>Extraction</strong> is the process by which data is retrieved from source datastores.</li>
+							<li class="fragment"><strong>Transformation</strong> is where all calculations, type conversions, etc are performed.</li>
+							<li class="fragment"><strong>Loading</strong> is the process by which transformed data is sent to output, or target datastores.</li>
 						</ul>
                		</section>
                		<section>
-               			<h3>ETL Fundamentals</h3>
+               			<h3>ETL Ground Rules</h3>
                			<ul>
-							<li>Extraction, Transformation, and Loading should be isolated, independent processes.  As such, after it process completes data needs to be stored in an intermediate storage format.</li>
-							<li>Extract is only for copying, not coercing!</li>
-							<li>Transform is where all calculations and manipulation of the data happens.</li>
-							<li>Loading is a publishing mechanism for transformed data.</li>
+							<li>Extraction, Transformation, and Loading should be isolated, independently runnable processes.</li>
+							<li>Extract is only for copying data.</li>
+							<li>Transform is the only place where data is <em>changed</em>.</li>
+							<li>Loading is a push-only mechanism for transformed data.</li>
+						</ul>
+               		</section>
+               		<section>
+               			<h3>Intermediate Data Storage</h3>
+               			<p>To separate extract, transform, and load, the data has to go somewhere.<p>
+               			<ul>
+							<li>Memory can work for lightweight / simple pipelines.</li>
+							<li>Persistent/non-memory storage is critical for big pipelines<br>
+							    (throughput constraints, clustering, and general flexibility).</li>
 						</ul>
                		</section>
                 </section>
                 <section>
                     <section>
                         <h2>Extract</h2>
-                        <p>A base class lets you enforce behavior across all ETL Extract modules.</p>
-                        <pre><code>
-from logging import getLogger
-
-logger = getLogger('etl-extract')
-
-class BaseExtractor(object):
-    """ Defines base behavior for all extractors """
-    
-    def store(self, extracted_data):
-        """ Stores extracted data (a dictionary) in intermediate storage """
-        my_storage.write(extracted_data)
-        
-    def execute_extractions(self):
-        raise NotImplementedError()
-        
-    def extract(self):
-        logger.info("Extraction starting")
-        self.execute_extractions()
-        logger.info("Extraction completed")
-		
-		</code></pre>
-                    </section>
-                    <section>
-                        <h2>Extract: Extract Classes</h2>
-                        <p>Build an Extractor class per-datatype<p>
-						<pre><code>
-
-
-class EmployeeExtractor(BaseExtractor):
-    """ Extracts employee records from a CSV """
-
-    def __init__(self, *args, **kwargs):
-        self.extract_path = args[0]
-        super().__init__()
-    
-    def execute_extractions(self):    
-        with open(self.extract_path, 'r') as csv_file:
-            dataframe = read_csv(csv_file)
-            for idx, entry in dataframe.iterrows():
-                self.store(entry.to_dict())
-        
-
-                </code></pre>
-                    </section>
-                    <section>
-                        <h3>Extract:  Data Source Formats</h3>
-                        <p>If you have many sources, it may make sense to build base classes for each type of source datastore.<p>
+                        <p>Key Focus:  Simplicity</p>
                         <ul>
-                            <li>
-                            	File-based:
-                            	<ul>
-                            		<li>CSVExtractor</li>
-                            		<li>ExcelExtractor</li>
-                            		<li>ShapefileExtractor</li>
-                            	</ul>
-                            </li>
-                            <li>
-                            	Databases: 
-                            	<ul>
-                            		<li>SQLExtractor</li>
-                            		<li>MongoDBExtractor</li>
-                            	</ul>
-                            </li>
-                            <li>
-                            	HTTP APIs:
-                            	<ul>
-                            		<li>RESTExtractor</li>
-                            		<li>SOAPExtractor</li>
-                            	</ul>
-                            </li>
+                            <li>Just read the data</li>
+                            <li>Don't make changes or format</li>
+                            <li>Let extraction be flexible</li>
                         </ul>
                     </section>
                     <section>
@@ -216,14 +160,24 @@ class EmployeeExtractor(BaseExtractor):
                             <li>JSON<ul><li>
                                 Does not store much information about datatypes,<br> 
                                 which is good for extracted data.<br>
-                                Easy to parse with Python.</li></ul>
+                                Easy to parse with Python.
+                                <pre><code>import json
+                                
+python_dict = json.loads(json_data)
+                                </code></pre>
+                                </li></ul>
+                                
                             </li>
                             <li>CSV<ul><li>
                                 Easily parsed with Pandas.<br>
                                 Can be very useful for aggregations in the upcoming<br> 
                                 Transform step</li></ul>
                             </li>
-                            <li>Structured Database<ul><li>
+                            <li>Non-relational Datastore<ul><li>
+                                Fast, makes a great storage system for the above formats.
+                                </li></ul>
+                            </li>
+                            <li>Relational Database<ul><li>
                                 Highly persistent and easy to select one entry<br> 
                                 at a time, but slow to write.<br>
                                 Let all columns be nullable and use varchars / text.</li></ul>
@@ -236,70 +190,14 @@ class EmployeeExtractor(BaseExtractor):
                 <section>
                     <section>
                         <h2>Transform</h2>
-                        <p>A base class lets you enforce behavior across all ETL Transform modules.</p>
-                        <pre><code>
-class BaseTransformer:
-    """The BaseTransformer enforces basic behavior of transformations on extracted data."""
-
-    def __init__(self, *args, **kwargs):
-        """ Retrieve the object which we intend to transform. """
-        self.extracted_data = args[0]
-        super().__init__()
-        
-    def store(self, transformed_data):
-        """ Writes transformed_data to intermediate storage """
-        storage_instance.write(transformed_data)
-        
-    def execute_transformations(self):
-        raise NotImplementedError()
-        
-    def transform(self):
-        logger.info("Transformation starting")
-        self.execute_transformations()
-        logger.info("Transformation completed")
-                            </code></pre>
-                    </section>
-                    <section>
-                        <h3>Transform: Transformer Classes</h3>
-                        <p>Create a transformer per-datatype</p>
-                        <pre><code>
-class EmployeeTransformer(BaseTransformer):
-
-    def execute_transformations(self):
-        ex_data = self.extracted_data
-        
-        transformed_data = {
-            'employee_id': int(ex_data['employee_id'],
-            'name': str(ex_data['name'],
-        }
-        
-        lat, long = geocode_address(ex_data['address'])
-        transformed_data.update({
-            'lat': lat,
-            'long': long,
-        })
-        
-        return transformed_data
-                            </code></pre>
-                    </section>
-                    <section>
-                        <h3>Transform: Intermediate Storage Formats</h3>
-                        <p>Be more picky about storage formats for transformed data.</p>
+                        <p>Key Focus:  Atomicity</p>
+                        
+                        <p>atomicity:  the state or fact of being composed of indivisible units.</p>
                         <ul>
-                            <li>JSON / CSV<ul><li>
-                                Still easily parsed by Python.<br>
-                                No built-in way of keeping your data typed.</li></ul>
-                            </li>
-                            <li>Python Pickles<ul><li>
-                                Easy to store and un-pickle.<br>
-                                Retains a perfect Pythonic representation of transformed data.
-                                </li></ul>
-                            </li>
-                            <li>Structured Database<ul><li>
-                                Particularly useful if your target datastore is a DB.<br>
-                                Let database schema reflect the same types as your target.</li></ul>
-                            </li>
+                            <li>Transforming data should work on the smallest chunks possible.</li>
+                            <li>Complete or fail, no half-transformed state.</li>
                         </ul>
+
                     </section>
                     <section>
                         <h3>Transform: Intermediate Storage Formats</h3>
@@ -314,9 +212,14 @@ class EmployeeTransformer(BaseTransformer):
                                 Retains a perfect Pythonic representation of transformed data.
                                 </li></ul>
                             </li>
-                            <li>Structured Database<ul><li>
-                                Particularly useful if your target datastore is a DB.<br>
-                                Let database schema reflect the same types as your target.</li></ul>
+                            <li>
+                                Non-relational Datastore<ul><li>
+                                    Fast, but likely requires heavy effort to maintain types.
+                                </li></ul>
+                            </li>
+                            <li>Relational Database<ul><li>
+                                Particularly useful if your target datastore is also a relational database.<br>
+                                Let database schema reflect the same types as your target.  Speed is a downside.</li></ul>
                             </li>
                         </ul>
                     </section>
@@ -324,106 +227,32 @@ class EmployeeTransformer(BaseTransformer):
                 <section>
                     <section>
                         <h2>Load</h2>
-                        <p>A base class enforces behavior across all ETL Load modules</p>
-                        <pre><code>
-                            
-class BaseLoader(object):
-    """ The BaseLoader enforces basic behavior of loading with transformed data """
-    
-    target_model = None
-    idempotent_on = []
+                        <p>Key Focus: Idempotency</p>
+                        <p>Idempotent functions/algorithms can run more than once and produce the same output.</p>
+                        
+                        <ul>
+                            <li>If data is uniquely identifiable, it should be loaded uniquely.</li>
+                            <li>Allows updates / deltas to be ETL'd with same pipeline.</li>
+                            <li>Allows data to be extracted, transformed multiple times without duplication.</li>
+                        </ul>
 
-    def get_model(self):
-        """ Returns an ORM Model for the target storage. """
-        return self.target_model
-        
-    def execute_loading(self, transformed_data):
-        raise NotImplementedError() 
-
-    def load(self, transformed_data):
-        logger.info('Load starting')
-        self.execute_loading(transformed_data)
-        logger.info('Load completed')
-        </code></pre>
-                    </section>
+                    </section> 
                     <section>
-                        <h3>Load: Loader Classes</h2>
-                        <p>Build a Loader class per-datatype<p>
-                        <pre><code>
-                            
-class EmployeeLoader(object):
-    """ The EmployeeLoader loads transformed employee data into a Django model """
-    
-    target_model = EmployeeModel
-        
-    def execute_loading(self, transformed_data):
-        """ A non-idempotent example of loading """
-        
-        model = self.get_model()
-        instance = model(**transformed_data) 
-        instance.save()   
-        
-        </code></pre>
-                    </section>
-                    <section>
-                        <h3>Load: Idempotency</h2>
-                        <p>Idempotent loading is a big advantage in an ETL pipeline<p>
-                        <pre><code>
-class EmployeeLoader(object):
-    """ The EmployeeLoader loads transformed employee data into a Django model """
-    
-    target_model = EmployeeModel
-    idempontent_on = ['employee_id']
-        
-    def execute_loading(self, transformed_data):
-        """ A idempotent example of loading """
-        model = self.get_model()
-
-        lookup_kwargs = {k: transformed_data[k] for k in self.idempontent_on}
-        instance, was_created = model.objects.get_or_create(**lookup_kwargs)
-        # get_or_create(employee_id=transformed_data['employee_id'])
-
-        for k, v in transformed_data.items():
-            setattr(instance, k, v)        
-        instance.save()
-        
-        </code></pre>
-                    </section>
+                        <h2>Load</h2>
+                        <p>Building Relationships</p>
+                        <p>Loading relational data presents the extra challenge of rebuilding relationships</p>
+                        <ul><li>Functional approach<ul>
+                            <li>Identify if an atomic unit has un-resolved relationships.</li>
+                            <li>Resolve relationships.</li>
+                            <li>Bi-directionality is most efficient.</li>
+                            </ul>
+                            </li>
+                        </ul>
+                    </section> 
                 </section>
                 <section>
                     <section>
-                        <h2>Tying It Together</h2>
-                        <p>Let's look at how our ETL pipeline could be run.</p>
-                        <pre><code>                        
-def extracted_pop():
-    # ...
-    
-def transformed_pop():
-    # ...        
-    
-def run_etl():
-    """ Executes and manages the ETL pipeline """
-    
-    extractor = EmployeeExtractor('employees.csv')
-    extractor.extract()
-    
-    transformer = EmployeeTransformer(extracted_pop())
-    transformer.transform()
-        
-    loader = EmployeeLoader(transformed_pop())
-    loader.load()
-    </code></pre>
-                    </section>
-                    <section>
-                        <h3>Tying It Together</h3>
-                        <p class="fragment">Our example demonstrates the flow of one item through ETL pipeline.</p>
-                        <p class="fragment">Still synchronous--loading executes after transform.</p>
-                        <p class="fragment">How can we make each process run asynchronously?</p>    
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>Celery</h2>
+                        <h2>Clustering with Celery</h2>
                         <h3>Asynchronous Processing for Python</h3>
                     </section>
                     <section>
@@ -434,145 +263,29 @@ def run_etl():
                         <img src="https://wiki.openstack.org/w/images/b/b8/CeleryArch.jpg">
                     </section>
                     <section>
-                        <h3>Celery: Defining Tasks</h3>
-                        <p>Let's imagine how we'd divide our example ETL pipeline into tasks<p>
+                        <h3>Converting to Celery Tasks</h3>
+                        <p>Once Celery is configured, converting code to run on workers is easy.</p>
                         <pre><code>
-# tasks.py
 from .celery import etl_app
 
-@etl_app.task
-def extract(filename):
-    e = EmployeeExtractor(filename)
-    e.extract()
-
-@etl_app.task
-def transform(ed_key):
-    t = EmployeeTransformer(ed_key)
-    t.transform()
-
-@etl_app.task
-def load(td_key):
-    l = EmployeeLoader(td_key)
-    l.load()
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h3>Celery: Calling Tasks</h3>
-                        <p>Now lets imagine how we'd schedule tasks from our pipeline.</p>
-                        <pre><code>
-# extract.py
-from .tasks import transform
-                        
-class BaseExtractor(object):
-    """ Defines base behavior for all extractors """
+@etl_app.task()
+def extract():
+    # ...
     
-    def store(self, extracted_data):
-        """ Stores extracted data (a dictionary) in intermediate storage """
-        ed_key = my_storage.write(extracted_data)
-        
-        # Schedule a task for the transformation of this data
-        tansform.delay(ed_key)
-        
-                        </code></pre>
-                    </section>
-                    <section>
-                        <h3>Celery: Calling Tasks</h3>
-                        <p>On the transformer side of things...</p>
-                        <pre><code>
-# trasform.py
-from .tasks import load
-                        
-class BaseTransformer(object):
-    """ Defines base behavior for all extractors """
+@etl_app.task()
+def transform():
+    # ...
     
-    def __init__(self, ed_key, *kwargs):
-        """ Look up data in intermediate storage based on key in ed_key """
-        self.extracted_data = extracted_lookup(ed_key)
-        
-    def store(self, transformed_data):
-        td_key = storage_instance.write(transformed_data)
-        load.delay(td_key)
-                        </code></pre>
-                        <p>And apply similar logic to the BaseLoader class</p>
-                    </section>
-                    <section>
-                        <h3>Celery: Asynchronous ETL</h3>
-                        <p>Now how is our process executed?</p>
-                        <pre><code>
-from .tasks import extract        
-extract.delay('employees.csv')
-                        </code></pre>
-                        <p>The task queue will fill with transform/load tasks until they are exhausted by the worker pool.</p>
-                    </section>
-                </section>
-                <section>
-                    <section>
-                        <h2>ETL Registry</h2>
-                        <h3>Managing Many datatypes</h3>
-                    </section>
-                    <section>
-                        <h3>ETL Registry: Architecture</h3>
-                        <p>Implementing a registry pattern allows us to broaden the pipeline with many ETL sources.</p>
-                        <p>The relationships between Extract, Transform, and Load classes are stored at runtime.</p>
-                        <p>A reference to the appropriate class can be linked to records in intermediate storage.</p>
-                        
-                        <p>https://gist.github.com/ckinsey/762394f280dec30f012b</p>
-                    </section>
-                    <section>
-                        <h3>ETL Registry: Looking Up Classes</h3>
-                        <p>Let's see how this can be applied to a Celery task</p>
-                        
-                        <pre><code>
-# tasks.py
-from .celery import etl_app
-from .etl_registry import registry
+@etl_app.task()
+def load():
+    # ...
 
-@etl_app.task
-def transform(ed_key, transformer_name):
-    """ Look up the transformer referenced by name and instantiate / execute it """
-    
-    entry = registry.get_entry(transformer=transformer_name)
-    transformer_class = entry['class']
+extract.apply_async()
+transform.apply_async()
+load.apply_async()
 
-    t = transformer_class(ed_key)
-    t.transform()
-    </code></pre>
-                    </section>
-                    <section>
-                        <h3>ETL Registry: Looking Up Classes</h3>
-                        <p>How did the task receive the transformer name?</p>
-                        
-                        <pre><code>
-from .etl_registry import registry
-
-class BaseExtractor(object):
-    """ Defines base behavior for all extractors """
-    
-    def store(self, extracted_data):
-        """ Stores extracted data (a dictionary) in intermediate storage """
-        ed_key = my_storage.write(extracted_data)
-        
-        # Look up transformer name
-        entry = registry.get_entry(extractor=self.__name__)
-        
-        # Schedule a task for the transformation of this data
-        transform.delay(ed_key, entry['transformer']['name'])
-        </code></pre>   
-                    </section>
-                    <section>
-                        <h3>ETL Registry: Running ETL</h3>
-                        <p>Kicking off our ETL pipeline is still simple.</p>
-                        <pre><code>
-from etl_registry import registry
-from .tasks import extract        
-
-def run_etl():
-    for entry in registry._registry:
-        e = entry['extractor']['class']()
-        e.extract()
                         </code></pre>
                     </section>
-                    
                 </section>
                 <section>
                     <section>
